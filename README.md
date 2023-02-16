@@ -3,7 +3,7 @@ DNS, Directories and file enumeration and fingerprint tool
 
 install requeriments
 ```
-pip3 install -r requeriments.txt
+pip3 install -r requeriment.txt
 ```
 
 optional arguments:
