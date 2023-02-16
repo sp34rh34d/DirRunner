@@ -22,6 +22,8 @@ DNS Enumeration mode:
 ```
   python3 DirRunner.py dns -d domain.com -w wordlist.txt
 ```
+<img width="866" alt="Captura de Pantalla 2023-02-16 a la(s) 17 50 01" src="https://user-images.githubusercontent.com/94752464/219514018-c0d0ae15-f366-42e3-8895-1ace942e5b3f.png">
+
 Dir enumeration mode:
 ```
   python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt
@@ -38,3 +40,5 @@ fingerprint for get web technology
 ```
   python3 DirRunner.py fingerprint -u https://www.domain.com
 ```
+<img width="828" alt="Captura de Pantalla 2023-02-16 a la(s) 17 54 23" src="https://user-images.githubusercontent.com/94752464/219514378-771db89b-01e7-4cde-abab-04ef6cf379f9.png">
+
