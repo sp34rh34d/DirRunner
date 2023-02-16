@@ -1,9 +1,9 @@
 # DirRunner
-DNS, Directories and file enumeration tool
+DNS, Directories and file enumeration and fingerprint tool
 
-Set execution permissions
+install requeriments
 ```
-chmod +x DirRunner.sh
+pip3 install -r requeriments.txt
 ```
 
 optional arguments:
