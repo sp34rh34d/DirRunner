@@ -50,40 +50,40 @@ class color:
 	reset = '\033[0m'
 
 def read_response_code(_res,_line,_method):
-	match _res.status_code:
-		case 200:
-			if code_200==True:
-				print(f'[{color.green}200{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                        ')
-		case 201:
-			if code_201==True:
-				print(f'[{color.green}201{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                         ')
-		case 301:
-			if code_301==True:
-				print(f'[{color.yellow}301{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset} -> [{color.blue}{_res.headers["Location"]}{color.reset}]')
-		case 302:
-			if code_302==True:
-				print(f'[{color.yellow}302{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset} -> [{color.blue}{_res.headers["Location"]}{color.reset}]')
-		case 400:
-			if code_400==True:
-				print(f'[{color.blue}400{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                          ')
-		case 401:
-			if code_401==True:
-				print(f'[{color.blue}401{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                          ')
-		case 403:
-			if code_403==True:
-				print(f'[{color.blue}403{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                          ')
-		case 404:
-			if code_404==True:
-				print(f'[{color.blue}404{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                          ')
-		case 405:
-			if code_405==True:
-				print(f'[{color.blue}405{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                          ')
-		case 500:
-			if code_500==True:
-				print(f'[{color.red}500{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                           ')
-		case 503:
-			if code_503==True:
-				print(f'[{color.red}503{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                           ')
+
+	if _res.status_code == 200:
+		if code_200==True:
+			print(f'[{color.green}200{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                        ')
+	if _res.status_code == 201:
+		if code_201==True:
+			print(f'[{color.green}201{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                         ')
+	if _res.status_code == 301:
+		if code_301==True:
+			print(f'[{color.yellow}301{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset} -> [{color.blue}{_res.headers["Location"]}{color.reset}]')
+	if _res.status_code == 302:
+		if code_302==True:
+			print(f'[{color.yellow}302{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset} -> [{color.blue}{_res.headers["Location"]}{color.reset}]')
+	if _res.status_code == 400:
+		if code_400==True:
+			print(f'[{color.blue}400{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                          ')
+	if _res.status_code == 401:
+		if code_401==True:
+			print(f'[{color.blue}401{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                          ')
+	if _res.status_code == 403:
+		if code_403==True:
+			print(f'[{color.blue}403{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                          ')
+	if _res.status_code == 404:
+		if code_404==True:
+			print(f'[{color.blue}404{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                          ')
+	if _res.status_code == 405:
+		if code_405==True:
+			print(f'[{color.blue}405{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                          ')
+	if _res.status_code == 500:
+		if code_500==True:
+			print(f'[{color.red}500{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                           ')
+	if _res.status_code == 503:
+		if code_503==True:
+			print(f'[{color.red}503{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                           ')
 
 def url_request(_url,line):
 
@@ -97,31 +97,32 @@ def url_request(_url,line):
 		print(f'processing: {line}                          ',end="\r")
 
 	for m in method:
-		match m:
-			case "GET":
+		try:
+			if m == "GET":
 				res = requests.get(url_to_request,headers=headers,allow_redirects=False,timeout=5)
 				read_response_code(res,line,"GET")
 
-			case "POST":
+			if m == "POST":
 				res = requests.post(url_to_request,headers=headers,allow_redirects=False,timeout=5)
 				read_response_code(res,line,"POST")
 
-			case "PUT":
+			if m == "PUT":
 				res = requests.put(url_to_request,headers=headers,allow_redirects=False,timeout=5)
 				read_response_code(res,line,"PUT")
 
-			case "HEAD":
+			if m == "HEAD":
 				res = requests.head(url_to_request,headers=headers,allow_redirects=False,timeout=5)
 				read_response_code(res,line,"HEAD")
 
-			case "DELETE":
+			if m == "DELETE":
 				res = requests.delete(url_to_request,headers=headers,allow_redirects=False,timeout=5)
 				read_response_code(res,line,"DELETE")
 
-			case "OPTION":
+			if m == "OPTION":
 				res = requests.option(url_to_request,headers=headers,allow_redirects=False,timeout=5)
 				read_response_code(res,line,"OPTION")
-
+		except requests.exceptions.Timeout:
+			print(f"{color.red}Connection timeout for {url_to_request}{color.reset}")
 
 
 def file_discovery(_url,line):
@@ -136,11 +137,13 @@ def file_discovery(_url,line):
 
 	for extension in extensions:
 		built_url_to_request=f'{url_to_request}.{extension.replace(".","")}'
-		res = requests.get(built_url_to_request,headers=headers,allow_redirects=False,timeout=5)
+		try:
+			res = requests.get(built_url_to_request,headers=headers,allow_redirects=False,timeout=5)
 
-		if res.status_code==200:
-			print(f'[{color.green}+{color.reset}] {color.green}{built_url_to_request}{color.reset}                        ')
-
+			if res.status_code==200:
+				print(f'[{color.green}+{color.reset}] {color.green}{built_url_to_request}{color.reset}                        ')
+		except requests.exceptions.Timeout:
+			print(f"{color.red}Timeout for {built_url_to_request}{color.reset}")
 
 def ThreadsFileMode():
 	try:
@@ -288,32 +291,30 @@ user_agent=args.user_agent
 
 
 for s in status_code:
-	match int(s):
-		case 200:
-			code_200=True
-		case 201:
-			code_201=True
-		case 301:
-			code_301=True
-		case 302:
-			code_302=True
-		case 400:
-			code_400=True
-		case 401:
-			code_401=True
-		case 403:
-			code_403=True
-		case 404:
-			code_404=True
-		case 405:
-			code_405=True
-		case 500:
-			code_500=True
-		case 503:
-			code_503=True
+	if s == '200':
+		code_200=True
+	if s == '201':
+		code_201=True
+	if s == '301':
+		code_301=True
+	if s == '302':
+		code_302=True
+	if s == '400':
+		code_400=True
+	if s == '401':
+		code_401=True
+	if s == '403':
+		code_403=True
+	if s == '404':
+		code_404=True
+	if s == '405':
+		code_405=True
+	if s == '500':
+		code_500=True
+	if s == '503':
+		code_503=True
 
-
-
+		
 
 #################################### Directory enumeration menu ##########################################
 
@@ -344,6 +345,25 @@ Wordlist file: {color.green}{wordlist_file}{color.reset}
 ======================================================================================================""")
 		if not validators.url(target_url):
 			print(color.lightred +"Invalid url!"+color.reset)
+			sys.exit()
+
+		try:
+			print(f'[{color.blue}!{color.reset}] {color.orange}Checking connection for {target_url}{color.reset}')
+			headers={"User-Agent":f"{user_agent}"}
+			res = requests.get(target_url,headers=headers,allow_redirects=False,timeout=5)
+			print(f'[{color.green}+{color.reset}]{color.green} Connection OK!{color.reset}')
+
+		except requests.exceptions.Timeout:
+			print(f"{color.red}Timeout for {target_url}{color.reset}")
+			sys.exit()
+		except requests.exceptions.ConnectionError:
+			print(f"{color.red}Connection error for {target_url}{color.reset}")
+			sys.exit()
+		except requests.exceptions.TooManyRedirects:
+			print(f"{color.red}Too may redirect for {target_url}{color.reset}")
+			sys.exit()
+		except requests.exceptions.RequestException as e:
+			raise SystemExit(e)
 			sys.exit()
 
 		ThreadsDirMode()
@@ -401,6 +421,25 @@ Attack mode: {color.green}{attack_mode}{color.reset}
 			print(color.lightred +"Invalid url!"+color.reset)
 			sys.exit()
 
+		try:
+			print(f'[{color.blue}!{color.reset}] {color.orange}Checking connection for {target_url}{color.reset}')
+			headers={"User-Agent":f"{user_agent}"}
+			res = requests.get(target_url,headers=headers,allow_redirects=False,timeout=5)
+			print(f'[{color.green}+{color.reset}]{color.green} Connection OK!{color.reset}')
+
+		except requests.exceptions.Timeout:
+			print(f"{color.red}Timeout for {target_url}{color.reset}")
+			sys.exit()
+		except requests.exceptions.ConnectionError:
+			print(f"{color.red}Connection error for {target_url}{color.reset}")
+			sys.exit()
+		except requests.exceptions.TooManyRedirects:
+			print(f"{color.red}Too may redirect for {target_url}{color.reset}")
+			sys.exit()
+		except requests.exceptions.RequestException as e:
+			raise SystemExit(e)
+			sys.exit()
+
 		fingerprint_request()
 
 
@@ -437,6 +476,25 @@ Wordlist file: {color.green}{wordlist_file}{color.reset}
 ======================================================================================================""")
 		if not validators.url(target_url):
 			print(color.lightred +"Invalid url!"+color.reset)
+			sys.exit()
+
+		try:
+			print(f'[{color.blue}!{color.reset}] {color.orange}Checking connection for {target_url}{color.reset}')
+			headers={"User-Agent":f"{user_agent}"}
+			res = requests.get(target_url,headers=headers,allow_redirects=False,timeout=5)
+			print(f'[{color.green}+{color.reset}]{color.green} Connection OK!{color.reset}')
+
+		except requests.exceptions.Timeout:
+			print(f"{color.red}Timeout for {target_url}{color.reset}")
+			sys.exit()
+		except requests.exceptions.ConnectionError:
+			print(f"{color.red}Connection error for {target_url}{color.reset}")
+			sys.exit()
+		except requests.exceptions.TooManyRedirects:
+			print(f"{color.red}Too may redirect for {target_url}{color.reset}")
+			sys.exit()
+		except requests.exceptions.RequestException as e:
+			raise SystemExit(e)
 			sys.exit()
 
 		ThreadsFileMode()
