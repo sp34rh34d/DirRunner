@@ -8,9 +8,9 @@ DNS, Directories and file enumeration and fingerprint tool
 <li>fingerprint: web technology detection mode</li>
 <br>
 
-install requeriments
+install requirements
 ```
-pip3 install -r requeriment.txt
+pip3 install -r requirements.txt
 ```
 
 optional arguments:
