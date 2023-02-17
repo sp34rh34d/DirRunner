@@ -49,6 +49,8 @@ class color:
 	lightcyan = '\033[96m'
 	reset = '\033[0m'
 
+not_graceful = sys.argv[1:] and sys.argv[1] == '--not-graceful'
+
 def read_response_code(_res,_line,_method):
 
 	if _res.status_code == 200:
@@ -147,32 +149,27 @@ def file_discovery(_url,line):
 
 def ThreadsFileMode():
 	try:
-
 		with concurrent.futures.ThreadPoolExecutor(max_workers=int(threads)) as executor:
 			f = open(wordlist_file,'r')
 			future_to_url = {executor.submit(file_discovery,target_url,word): word for word in f.read().split("\n")}
-			for future in concurrent.futures.as_completed(future_to_url):
-				try:
-					data = future.result()
-				except err:
-					return 0
 
-	except:
-		print(f'{color.red}Process terminated!{color.reset}')
+			for future in concurrent.futures.as_completed(future_to_url):
+				future.result()
+	except KeyboardInterrupt:
+		print(f'{color.red}Process terminated, Ctrl C!{color.reset}')
+		sys.exit()
 
 def ThreadsDirMode():
 	try:
 		with concurrent.futures.ThreadPoolExecutor(max_workers=int(threads)) as executor:
 			f = open(wordlist_file,'r')
 			future_to_url = {executor.submit(url_request,target_url,word): word for word in f.read().split("\n")}
-			for future in concurrent.futures.as_completed(future_to_url):
-				try:
-					data = future.result()
-				except err:
-					return 0
 
-	except:
-		print(f'{color.red}Process terminated!{color.reset}')
+			for future in concurrent.futures.as_completed(future_to_url):
+				future.result()
+	except KeyboardInterrupt:
+		print(f'{color.red}Process terminated, Ctrl C!{color.reset}')
+		sys.exit()
 
 def hostname_request(_domain,line):
 	try:
@@ -189,13 +186,12 @@ def ThreadsDnsMode():
 		with concurrent.futures.ThreadPoolExecutor(max_workers=int(threads)) as executor:
 			f = open(wordlist_file,'r')
 			future_to_url = {executor.submit(hostname_request,target_domain,word): word for word in f.read().split("\n")}
+		
 			for future in concurrent.futures.as_completed(future_to_url):
-				try:
-					data = future.result()
-				except err:
-					return 0
-	except:
-		print(f'{color.red}Process terminated!{color.reset}')
+				future.result()
+	except KeyboardInterrupt:
+		print(f'{color.red}Process terminated, Ctrl C!{color.reset}')
+		sys.exit()
 
 def fingerprint_request():
 	headers={"User-Agent":f"{user_agent}"}
@@ -314,7 +310,6 @@ for s in status_code:
 	if s == '503':
 		code_503=True
 
-		
 
 #################################### Directory enumeration menu ##########################################
 
@@ -398,6 +393,8 @@ Wordlist file: {color.green}{wordlist_file}{color.reset}
 			sys.exit()
 
 		ThreadsDnsMode()
+
+		
 
 
 
