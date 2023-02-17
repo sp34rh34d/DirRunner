@@ -1,6 +1,13 @@
 # DirRunner
 DNS, Directories and file enumeration and fingerprint tool
 
+<h3>Modules</h3>
+<li>dir: directories enumeration mode</li>
+<li>dns: dns enumeration mode</li>
+<li>file: file enumeration mode by extension</li>
+<li>fingerprint: web technology detection mode</li>
+<br>
+
 install requeriments
 ```
 pip3 install -r requeriment.txt
