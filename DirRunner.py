@@ -49,8 +49,6 @@ class color:
 	lightcyan = '\033[96m'
 	reset = '\033[0m'
 
-not_graceful = sys.argv[1:] and sys.argv[1] == '--not-graceful'
-
 def read_response_code(_res,_line,_method):
 
 	if _res.status_code == 200:
