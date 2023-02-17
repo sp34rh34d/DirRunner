@@ -101,27 +101,27 @@ def url_request(_url,line):
 	for m in method:
 		try:
 			if m == "GET":
-				res = requests.get(url_to_request,headers=headers,allow_redirects=False,timeout=5)
+				res = requests.get(url_to_request,headers=headers,allow_redirects=False,timeout=10)
 				read_response_code(res,line,"GET")
 
 			if m == "POST":
-				res = requests.post(url_to_request,headers=headers,allow_redirects=False,timeout=5)
+				res = requests.post(url_to_request,headers=headers,allow_redirects=False,timeout=10)
 				read_response_code(res,line,"POST")
 
 			if m == "PUT":
-				res = requests.put(url_to_request,headers=headers,allow_redirects=False,timeout=5)
+				res = requests.put(url_to_request,headers=headers,allow_redirects=False,timeout=10)
 				read_response_code(res,line,"PUT")
 
 			if m == "HEAD":
-				res = requests.head(url_to_request,headers=headers,allow_redirects=False,timeout=5)
+				res = requests.head(url_to_request,headers=headers,allow_redirects=False,timeout=10)
 				read_response_code(res,line,"HEAD")
 
 			if m == "DELETE":
-				res = requests.delete(url_to_request,headers=headers,allow_redirects=False,timeout=5)
+				res = requests.delete(url_to_request,headers=headers,allow_redirects=False,timeout=10)
 				read_response_code(res,line,"DELETE")
 
 			if m == "OPTION":
-				res = requests.option(url_to_request,headers=headers,allow_redirects=False,timeout=5)
+				res = requests.option(url_to_request,headers=headers,allow_redirects=False,timeout=10)
 				read_response_code(res,line,"OPTION")
 		except requests.exceptions.Timeout:
 			print(f"{color.red}Connection timeout for {url_to_request}{color.reset}")
@@ -140,7 +140,7 @@ def file_discovery(_url,line):
 	for extension in extensions:
 		built_url_to_request=f'{url_to_request}.{extension.replace(".","")}'
 		try:
-			res = requests.get(built_url_to_request,headers=headers,allow_redirects=False,timeout=5)
+			res = requests.get(built_url_to_request,headers=headers,allow_redirects=False,timeout=15)
 
 			if res.status_code==200:
 				print(f'[{color.green}+{color.reset}] {color.green}{built_url_to_request}{color.reset}                        ')
@@ -195,18 +195,28 @@ def ThreadsDnsMode():
 
 def fingerprint_request():
 	headers={"User-Agent":f"{user_agent}"}
-	res = requests.post(target_url,headers=headers,allow_redirects=False,timeout=15)
-	tech=builtwith(target_url)
+	try:
+		res = requests.post(target_url,headers=headers,timeout=15)
+	except requests.exceptions.Timeout:
+	 	print(f"{color.red}Timeout for {target_url}{color.reset}")
+	except requests.exceptions.ConnectionError:
+		print(f"{color.red}Connection error for {target_url}{color.reset}")
+	except requests.exceptions.TooManyRedirects:
+	 	print(f"{color.red}Too may redirect for {target_url}{color.reset}")
 
 	try:
 		print(f"Status: {color.green}{res.status_code}{color.reset}")
 		print(f"Web server: {color.green}{res.headers['Server']}{color.reset}")
 		print(f"Content-Length: {color.green}{res.headers['Content-Length']}{color.reset}")
 	except:
-		return 0
+		print("",end="\r")
 	
-	for f in tech:
-		print(f'{f} : {color.green}{tech[f]}{color.reset}')
+	try:
+		tech=builtwith(target_url)
+		for f in tech:
+			print(f'{f} : {color.green}{tech[f]}{color.reset}')
+	except:
+		print(f'{color.red}Error trying to get web tech!{color.reset}')
 
 def banner():
 	print(
