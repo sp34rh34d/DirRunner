@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
+
 import requests
 import argparse
 import sys
 import concurrent.futures
 import socket
-import urllib3
-from urllib3.exceptions import InsecureRequestWarning
 from builtwith import *
+import validators
+from pathlib import Path
 
 target_url=""
 wordlist_file=""
@@ -49,7 +50,7 @@ class color:
 	reset = '\033[0m'
 
 def read_response_code(_res,_line,_method):
-	match int(_res.status_code):
+	match _res.status_code:
 		case 200:
 			if code_200==True:
 				print(f'[{color.green}200{color.reset}][{color.yellow}{_method}{color.reset}] {color.green}{_line}{color.reset}                        ')
@@ -87,9 +88,6 @@ def read_response_code(_res,_line,_method):
 def url_request(_url,line):
 
 	headers={"User-Agent":f"{user_agent}"}
-	url_to_request=''
-	urllib3.disable_warnings()
-	requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 	read_url = _url[len(_url) - 1]
 	if read_url =='/':
@@ -128,9 +126,6 @@ def url_request(_url,line):
 
 def file_discovery(_url,line):
 	headers={"User-Agent":f"{user_agent}"}
-	url_to_request=''
-	urllib3.disable_warnings()
-	requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 	read_url = _url[len(_url) - 1]
 	if read_url =='/':
@@ -201,9 +196,7 @@ def ThreadsDnsMode():
 
 def fingerprint_request():
 	headers={"User-Agent":f"{user_agent}"}
-	urllib3.disable_warnings()
-	requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
-	res = requests.post(target_url,headers=headers,allow_redirects=False,timeout=15,verify=False)
+	res = requests.post(target_url,headers=headers,allow_redirects=False,timeout=15)
 	tech=builtwith(target_url)
 
 	try:
@@ -293,6 +286,7 @@ method=args.method.split(",")
 attack_mode=args.mode
 user_agent=args.user_agent
 
+
 for s in status_code:
 	match int(s):
 		case 200:
@@ -319,13 +313,25 @@ for s in status_code:
 			code_503=True
 
 
+
+
+#################################### Directory enumeration menu ##########################################
+
 if attack_mode == 'dir':
 	print(color.green + 'dir attack mode selected'+color.reset)
-	if not target_url or not wordlist_file:
+	if not target_url:
 		print(color.lightred +"some args are empty!"+color.reset)
 		help()
 		sys.exit()
 	else:
+		if not wordlist_file:
+			wordlist_file="directory.txt"
+
+		file = Path(wordlist_file)
+		if not file.is_file():
+			print(color.lightred +f"file {wordlist_file} not found!"+color.reset)
+			sys.exit()
+
 		banner()
 		print(f"""Target: {color.green}{target_url}{color.reset}
 Method: {color.green}{method}{color.reset}
@@ -336,22 +342,49 @@ User-agent: {color.green}{user_agent}{color.reset}
 Extension: {color.green}{extensions}{color.reset}
 Wordlist file: {color.green}{wordlist_file}{color.reset}
 ======================================================================================================""")
+		if not validators.url(target_url):
+			print(color.lightred +"Invalid url!"+color.reset)
+			sys.exit()
+
 		ThreadsDirMode()
+
+
+#################################### dns enumeration menu ##########################################
+
 
 if attack_mode == 'dns':
 	print(color.green +'dns attack mode selected'+color.reset)
-	if not target_domain or not wordlist_file:
+	if not target_domain:
 		print(color.lightred +"some args are empty!"+color.reset)
 		help()
 		sys.exit()
 	else:
+		if not wordlist_file:
+			wordlist_file="subdomains.txt"
+
+		file = Path(wordlist_file)
+		if not file.is_file():
+			print(color.lightred +f"file {wordlist_file} not found!"+color.reset)
+			sys.exit()
+
 		banner()
 		print(f"""Target: {color.green}{target_domain}{color.reset}
 Attack mode: {color.green}{attack_mode}{color.reset}
 Threads: {color.green}{threads}{color.reset}
 Wordlist file: {color.green}{wordlist_file}{color.reset}
 ======================================================================================================""")
+		if not validators.domain(target_domain):
+			print(color.lightred +"Invalid domain!"+color.reset)
+			sys.exit()
+
 		ThreadsDnsMode()
+
+
+
+
+#################################### fingerprint menu ##########################################
+
+
 
 if attack_mode == 'fingerprint':
 	print(color.green +'fingerprint mode selected'+color.reset)
@@ -364,15 +397,35 @@ if attack_mode == 'fingerprint':
 		print(f"""Target: {color.green}{target_url}{color.reset}
 Attack mode: {color.green}{attack_mode}{color.reset}
 ======================================================================================================""")
+		if not validators.url(target_url):
+			print(color.lightred +"Invalid url!"+color.reset)
+			sys.exit()
+
 		fingerprint_request()
+
+
+
+
+
+#################################### file enumeration menu ##########################################
+
+
 
 if attack_mode == 'file':
 	print(color.green +'file discovery mode selected'+color.reset)
-	if not target_url or not wordlist_file or not extensions:
+	if not target_url or not extensions:
 		print(color.lightred +"some args are empty!"+color.reset)
 		help()
 		sys.exit()
 	else:
+		if not wordlist_file:
+			wordlist_file="filename.txt"
+
+		file = Path(wordlist_file)
+		if not file.is_file():
+			print(color.lightred +f"file {wordlist_file} not found!"+color.reset)
+			sys.exit()
+
 		banner()
 		print(f"""Target: {color.green}{target_url}{color.reset}
 Method: {color.green}{method}{color.reset}
@@ -382,4 +435,8 @@ User-agent: {color.green}{user_agent}{color.reset}
 Extension: {color.green}{extensions}{color.reset}
 Wordlist file: {color.green}{wordlist_file}{color.reset}
 ======================================================================================================""")
+		if not validators.url(target_url):
+			print(color.lightred +"Invalid url!"+color.reset)
+			sys.exit()
+
 		ThreadsFileMode()
