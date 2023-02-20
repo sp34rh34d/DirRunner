@@ -29,8 +29,7 @@ DNS Enumeration mode:
 ```
   python3 DirRunner.py dns -d domain.com -w wordlist.txt
 ```
-
-https://user-images.githubusercontent.com/94752464/219988038-8a548369-cef0-4303-a0b5-4fdc4ce23657.mov
+![dns](https://user-images.githubusercontent.com/94752464/219993102-e13e4604-d90f-40eb-88aa-9f6f20e94b9c.gif)
 
 <br>
 
@@ -42,7 +41,7 @@ Dir enumeration mode:
   python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt
 ```
 
-https://user-images.githubusercontent.com/94752464/219988070-b232f24f-fd96-4f4e-bd4b-b7cd4c29255d.mov
+![dir](https://user-images.githubusercontent.com/94752464/219993126-0918fb64-fd25-4179-9264-aa1a0e281bcd.gif)
 
 
 Print only codes 200 and 301
@@ -54,7 +53,7 @@ file discovery
   python3 DirRunner.py file -u https://www.domain.com/ -w wordlist.txt -x php,txt
 ```
 
-https://user-images.githubusercontent.com/94752464/219988112-28eaa466-d7ac-4fb7-9055-b47a71f6dad4.mov
+![file](https://user-images.githubusercontent.com/94752464/219993153-55382e05-51d3-453c-b8c2-7d5f6db68df3.gif)
 
 <br>
 
@@ -62,7 +61,8 @@ fingerprint for get web technology
 ```
   python3 DirRunner.py fingerprint -u https://www.domain.com
 ```
-https://user-images.githubusercontent.com/94752464/219988133-8c197c84-5a41-40fa-971a-b4b1887fbbd6.mov
+
+![fingerprint](https://user-images.githubusercontent.com/94752464/219993178-23034155-7ebf-4167-a20a-0752b51394a8.gif)
 
 <br>
 
