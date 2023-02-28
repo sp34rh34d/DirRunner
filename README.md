@@ -1,11 +1,13 @@
 # DirRunner
-DNS, Directories and file enumeration and fingerprint tool
+DNS, Directories, file enumeration and fingerprint tool
 
 <h3>Modules</h3>
-<li>dir: directories enumeration mode</li>
-<li>dns: dns enumeration mode</li>
-<li>file: file enumeration mode by extension</li>
-<li>fingerprint: web technology detection mode</li>
+<li>dir         Uses directory enumeration mode</li>
+<li>dns         Uses DNS subdomain enumeration mode</li>
+<li>file        Uses file enumeration mode</li>
+<li>fingerprint Uses to detect web technologies</li>
+<li>fuzz        Uses fuzzing mode</li>
+<li>help        Help about any command</li>
 <br>
 
 install requirements
@@ -15,15 +17,18 @@ pip3 install -r requirements.txt
 
 optional arguments:
 ```
-  -u: set target url
-  -d: set target domain
-  -a: set user-agent
-  -x: set target extensions files (php,txt,html)
-  -s: set the status code to print (200,301)
-  -w: set wordlist
-  -t: set threads
-  -m: set method (GET/POST/DELETE/PUT/HEAD/OPTION), GET by default.
-  -h: show this message
+  -u, --url          set target url
+  -d, --domain       set target domain
+  -a, --user-agent   set user-agent 'DirRunner v1.0' by default
+  -x, --exts         set target extensions files (php,txt,html)
+  -s, --status-code  set the status code to print (200,301)
+  -w, --wordlist     set wordlist file
+  -t, --threads      set threads
+  -m, --method       set method (GET/POST/DELETE/OPTION/PUT/HEAD) for requests, GET by default.
+  -h, --help         show this message
+  -o,--output        set filename to save data
+                         txt format  -o report.txt
+                         html format -o report.html
 ```
 DNS Enumeration mode:
 ```
@@ -48,6 +53,12 @@ Print only codes 200 and 301
 ```
   python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt -s 200,301
 ```
+
+Fuzz enumeration mode:
+```
+  python3 DirRunner.py fuzz -u https://www.domain.com/FUZZ -w wordlist.txt
+```
+
 file discovery
 ```
   python3 DirRunner.py file -u https://www.domain.com/ -w wordlist.txt -x php,txt
