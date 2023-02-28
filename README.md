@@ -2,12 +2,12 @@
 DNS, Directories, file enumeration and fingerprint tool
 
 <h3>Modules</h3>
-<li>dir         Uses directory enumeration mode</li>
-<li>dns         Uses DNS subdomain enumeration mode</li>
-<li>file        Uses file enumeration mode</li>
-<li>fingerprint Uses to detect web technologies</li>
-<li>fuzz        Uses fuzzing mode</li>
-<li>help        Help about any command</li>
+<li>dir         - Uses directory enumeration mode</li>
+<li>dns         - Uses DNS subdomain enumeration mode</li>
+<li>file        - Uses file enumeration mode</li>
+<li>fingerprint - Uses to detect web technologies</li>
+<li>fuzz        - Uses fuzzing mode</li>
+<li>help        - Help about any command</li>
 <br>
 
 install requirements
