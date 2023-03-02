@@ -191,7 +191,7 @@ class FUZZ_TASK:
 
 	def NonExistingUrlCheck(Code):
 
-		HEADERS={"User-Agent":f"{FUZZ_OPTION.USER_AGENT}"}
+		headers={"User-Agent":f"{FUZZ_OPTION.USER_AGENT}","cookie":FUZZ_OPTION.COOKIE}
 
 		RANDOM_URL=FUZZ_TASK.RandomStrings()
 		URL_TO_REQUEST = FUZZ_OPTION.TARGET_URL.replace("FUZZ",RANDOM_URL)
