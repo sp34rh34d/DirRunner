@@ -15,20 +15,30 @@ install requirements
 pip3 install -r requirements.txt
 ```
 
+show module help menu
+```
+ python3 DirRunner.py [module] -h 
+ example: python3 DirRunner.py dir -h
+```
 optional arguments:
 ```
-  -u, --url          set target url
-  -d, --domain       set target domain
-  -a, --user-agent   set user-agent 'DirRunner v1.0' by default
-  -x, --exts         set target extensions files (php,txt,html)
-  -s, --status-code  set the status code to print (200,301)
-  -w, --wordlist     set wordlist file
-  -t, --threads      set threads
-  -m, --method       set method (GET/POST/DELETE/OPTION/PUT/HEAD) for requests, GET by default.
-  -h, --help         show this message
-  -o,--output        set filename to save data
-                         txt format  -o report.txt
-                         html format -o report.html
+  -u, --url                 set target url
+  -d, --domain              set target domain
+  -a, --user-agent          set user-agent 'DirRunner v1.0' by default
+  -x, --exts                set target extensions files (php,txt,html)
+  -s, --status-code         set the status code to print (200,301)
+  -w, --wordlist            set wordlist file
+  -t, --threads             set threads
+  -m, --method              set method (GET/POST/DELETE/OPTION/PUT/HEAD) for requests, GET by default.
+  -h, --help                show this message
+  -c, --cookie              set cookies to use for the requests
+  -k, --no-tls-validation   skip TLS certificate verification
+  -P, --password            Password for Basic Auth
+  -U, --username            Username for Basic Auth
+      --timeout             HTTP Timeout (default 15s)
+  -o, --output              set filename to save data
+                                 txt format  -o report.txt
+                                 html format -o report.html
 ```
 DNS Enumeration mode:
 ```
