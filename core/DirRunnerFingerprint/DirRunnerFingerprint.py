@@ -116,16 +116,16 @@ class FINGERPRINT_TASK:
 		except requests.exceptions.TooManyRedirects:
 	 		print(f"{TerminalColor.Red}Too may redirect for {FINGERPRINT_OPTIONS.TARGET_URL}{TerminalColor.Reset}")
 		except requests.exceptions.SSLError:
-			pass
+			print(f"{TerminalColor.Red}SSL verification error! add -k arg to ignore.{FINGERPRINT_OPTIONS.TARGET_URL}{TerminalColor.Reset}")
+			print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py fingerprint -h' for commands{TerminalColor.Reset}")
+			sys.exit()
 
 		try:
 			print(f"Status: {TerminalColor.Green}{res.status_code}{TerminalColor.Reset}")
 			print(f"Web server: {TerminalColor.Green}{res.headers['Server']}{TerminalColor.Reset}")
 			print(f"Content-Length: {TerminalColor.Green}{res.headers['Content-Length']}{TerminalColor.Reset}")
 		except:
-			print(f"{TerminalColor.Red}SSL verification error! add -k arg to ignore.{FINGERPRINT_OPTIONS.TARGET_URL}{TerminalColor.Reset}")
-			print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py fingerprint -h' for commands{TerminalColor.Reset}")
-			sys.exit()
+			pass
 	
 		try:
 			print(f"{TerminalColor.Orange}...wait...{TerminalColor.Reset}")
