@@ -1,29 +1,24 @@
 class HELP_MODULE:
 	def main():
 		print("""
+
+Usage:
+    python3 DirRunner.py [module] [args]
+
 Modules
-	dir         Uses directory enumeration mode
-	dns         Uses DNS subdomain enumeration mode
-	file        Uses file enumeration mode
-	fingerprint Uses to detect web technologies
-	fuzz        Uses fuzzing mode
-	help        Help about any command
+	dir          Uses directory enumeration mode
+	dns          Uses DNS subdomain enumeration mode
+	file         Uses file enumeration mode
+	fingerprint  Uses to detect web technologies
+	fuzz         Uses fuzzing mode
+	help         Help about any command
 
-Optional args
-	-u,--url: set target url
-	-d,--domain: set target domain
-	-a,--user-agent: set user-agent 'DirRunner v1.0' by default
-	-x,--exts: set target extensions files (php,txt,html)
-	-s,--status-code: set the status code to print (200,301)
-	-w,--wordlist: set wordlist file
-	-t,--threads: set threads
-	-m,--method: set method (GET/POST/DELETE/OPTION/PUT/HEAD) for requests, GET by default.
-	-h,--help: show this message
-
-Generate outputs files
--o,--output: set filename to save data,
-	txt format :  -o report.txt
-	html format : -o report.html
+Optional args:
+  -h, --help              help for DirRunner
+  -o, --output            Set filename to save data,
+                              txt format :  -o report.txt
+                              html format : -o report.html
+  -w, --wordlist string   Path to the wordlist
 
 Examples:
 	dns enumeration

@@ -17,6 +17,12 @@ class FUZZ_OPTION:
 	THREADS=10
 	STATUS_CODE=[]
 	OUTPUT=""
+	HELP=False
+	NO_TLS_VALIDATION=True
+	TIMEOUT=15
+	COOKIE=""
+	USERNAME=""
+	PASSWORD=""
 
 class FUZZ_MODULE:
 	def main(args):
@@ -28,6 +34,16 @@ class FUZZ_MODULE:
 		FUZZ_OPTION.THREADS=args.threads
 		FUZZ_OPTION.STATUS_CODE=args.status_code.split(",")
 		FUZZ_OPTION.METHODS=args.method.split(",")
+		FUZZ_OPTION.HELP=args.help
+		FUZZ_OPTION.TIMEOUT=int(args.timeout)
+		FUZZ_OPTION.NO_TLS_VALIDATION=args.no_tls_validation
+		FUZZ_OPTION.COOKIE=args.cookie
+		FUZZ_OPTION.USERNAME=args.username
+		FUZZ_OPTION.password=args.password
+
+
+		if FUZZ_OPTION.HELP==True:
+			FUZZ_HELP.Help()
 
 		if args.output:
 			now = datetime.now()
@@ -37,7 +53,7 @@ class FUZZ_MODULE:
 		if not FUZZ_OPTION.TARGET_URL:
 			print(TerminalColor.Red +"target url is required!"+TerminalColor.Reset)
 			print(f"{TerminalColor.Orange}example 'python3 DirRunner.py fuzz -u https://www.domain.com/FUZZ'{TerminalColor.Reset}")
-			print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py help' for commands{TerminalColor.Reset}")
+			print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py fuzz -h' for commands{TerminalColor.Reset}")
 			sys.exit()
 		else:
 			if not FUZZ_OPTION.WORDLIST:
@@ -64,42 +80,57 @@ class FUZZ_MODULE:
 			try:
 				URL_TO_REQUEST = FUZZ_OPTION.TARGET_URL.replace("FUZZ","")
 				print(f'[{TerminalColor.Blue}!{TerminalColor.Reset}] {TerminalColor.Orange}Checking connection for {URL_TO_REQUEST}{TerminalColor.Reset}')
-				headers={"User-Agent":f"{FUZZ_OPTION.USER_AGENT}"}
-				res = requests.get(URL_TO_REQUEST,headers=headers,allow_redirects=False,timeout=5)
+				headers={"User-Agent":f"{FUZZ_OPTION.USER_AGENT}","cookie":FUZZ_OPTION.COOKIE}
+
+				res = requests.get(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 				print(f'[{TerminalColor.Green}+{TerminalColor.Reset}]{TerminalColor.Green} Connection OK!{TerminalColor.Reset}')
 
 			except requests.exceptions.Timeout:
 				print(f"{TerminalColor.Red}Timeout for {URL_TO_REQUEST}{TerminalColor.Reset}")
 				sys.exit()
-			except requests.exceptions.ConnectionError as e:
-				print(f"{TerminalColor.Red}Connection error: {e}{TerminalColor.Reset}")
+			except requests.exceptions.SSLError:
+				print(f"{TerminalColor.Red}SSL verification error! add -k arg to ignore.{FUZZ_OPTION.TARGET_URL}{TerminalColor.Reset}")
+				print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py fuzz -h' for commands{TerminalColor.Reset}")
 				sys.exit()
 			except requests.exceptions.TooManyRedirects:
 				print(f"{TerminalColor.Red}Too may redirect for {URL_TO_REQUEST}{TerminalColor.Reset}")
+				sys.exit()
+			except requests.exceptions.ConnectionError as e:
+				print(f"{TerminalColor.Red}Connection error: {e}{TerminalColor.Reset}")
 				sys.exit()
 			except requests.exceptions.RequestException as e:
 				raise SystemExit(e)
 				sys.exit()
 
-			if "302" in FUZZ_OPTION.STATUS_CODE:
-				if FUZZ_TASK.NonExistingUrlCheck(302):
-					sys.exit()
-
-			if "301" in FUZZ_OPTION.STATUS_CODE:
-				if FUZZ_TASK.NonExistingUrlCheck(301):
+			for code in FUZZ_OPTION.STATUS_CODE:
+				if FUZZ_TASK.NonExistingUrlCheck(int(code)):
 					sys.exit()
 
 			FUZZ_TASK.Threads()
 
 
 	def Banner():
-		print(f"""- Target: {TerminalColor.Green}{FUZZ_OPTION.TARGET_URL}{TerminalColor.Reset}
+		Message=f"""- Target: {TerminalColor.Green}{FUZZ_OPTION.TARGET_URL}{TerminalColor.Reset}
 - Method: {TerminalColor.Green}{FUZZ_OPTION.METHODS}{TerminalColor.Reset}
 - Attack mode: {TerminalColor.Green}{FUZZ_OPTION.MODULE_NAME}{TerminalColor.Reset}
 - Threads: {TerminalColor.Green}{FUZZ_OPTION.THREADS}{TerminalColor.Reset}
 - Status code: {TerminalColor.Green}{FUZZ_OPTION.STATUS_CODE}{TerminalColor.Reset}
 - User-agent: {TerminalColor.Green}{FUZZ_OPTION.USER_AGENT}{TerminalColor.Reset}
-- Wordlist file: {TerminalColor.Green}{FUZZ_OPTION.WORDLIST}{TerminalColor.Reset}
+- Wordlist file: {TerminalColor.Green}{FUZZ_OPTION.WORDLIST}{TerminalColor.Reset}"""
+
+		if FUZZ_OPTION.COOKIE:
+			Message=f"""{Message}
+- Cookie: {TerminalColor.Green}{FUZZ_OPTION.COOKIE}{TerminalColor.Reset}"""
+
+		if FUZZ_OPTION.USERNAME:
+			Message=f"""{Message}
+- Username (http auth): {TerminalColor.Green}{FUZZ_OPTION.USERNAME}{TerminalColor.Reset}"""
+
+		if FUZZ_OPTION.NO_TLS_VALIDATION==False:
+			Message=f"""{Message}
+- TLS Validation: {TerminalColor.Green}{FUZZ_OPTION.NO_TLS_VALIDATION}{TerminalColor.Reset}"""
+		
+		print(f"""{Message}
 ======================================================================================================""")
 
 class FUZZ_TASK:
@@ -119,7 +150,7 @@ class FUZZ_TASK:
 
 	def Run(Line=""):
 
-		HEADERS={"User-Agent":f"{FUZZ_OPTION.USER_AGENT}"}
+		headers={"User-Agent":f"{FUZZ_OPTION.USER_AGENT}","cookie":FUZZ_OPTION.COOKIE}
 
 		URL_TO_REQUEST = FUZZ_OPTION.TARGET_URL.replace("FUZZ",Line)
 		
@@ -127,27 +158,27 @@ class FUZZ_TASK:
 
 		try:
 			if "GET" in FUZZ_OPTION.METHODS:
-				res = requests.get(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.get(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 				FUZZ_OUTPUT.ReadResponseCode(res,Line,"GET",URL_TO_REQUEST)
 
 			if "POST" in FUZZ_OPTION.METHODS:
-				res = requests.post(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.post(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 				FUZZ_OUTPUT.ReadResponseCode(res,Line,"POST",URL_TO_REQUEST)
 
 			if "PUT" in FUZZ_OPTION.METHODS:
-				res = requests.put(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.put(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 				FUZZ_OUTPUT.ReadResponseCode(res,Line,"PUT",URL_TO_REQUEST)
 
 			if "HEAD" in FUZZ_OPTION.METHODS:
-				res = requests.head(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.head(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 				FUZZ_OUTPUT.ReadResponseCode(res,Line,"HEAD",URL_TO_REQUEST)
 
 			if "DELETE" in FUZZ_OPTION.METHODS:
-				res = requests.delete(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.delete(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 				FUZZ_OUTPUT.ReadResponseCode(res,Line,"DELETE",URL_TO_REQUEST)
 
 			if "OPTION" in FUZZ_OPTION.METHODS:
-				res = requests.option(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.option(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 				FUZZ_OUTPUT.ReadResponseCode(res,Line,"OPTION",URL_TO_REQUEST)
 	
 		except requests.exceptions.Timeout:
@@ -171,26 +202,26 @@ class FUZZ_TASK:
 
 		try:
 			if "GET" in FUZZ_OPTION.METHODS:
-				res = requests.get(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.get(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 
 			if "POST" in FUZZ_OPTION.METHODS:
-				res = requests.post(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.post(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 
 			if "PUT" in FUZZ_OPTION.METHODS:
-				res = requests.put(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.put(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 
 			if "HEAD" in FUZZ_OPTION.METHODS:
-				res = requests.head(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.head(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 
 			if "DELETE" in FUZZ_OPTION.METHODS:
-				res = requests.delete(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.delete(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 
 			if "OPTION" in FUZZ_OPTION.METHODS:
-				res = requests.option(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.option(URL_TO_REQUEST,allow_redirects=False,auth=(FUZZ_OPTION.USERNAME, FUZZ_OPTION.PASSWORD),headers=headers,timeout=FUZZ_OPTION.TIMEOUT,verify=FUZZ_OPTION.NO_TLS_VALIDATION)
 
 			if res.status_code==Code:
-				print(f"[{TerminalColor.Red}-{TerminalColor.Reset}] The website return a status code {TerminalColor.Orange}{res.status_code}{TerminalColor.Reset} for non existing urls {TerminalColor.Orange}{URL_TO_REQUEST}{TerminalColor.Reset}, please exclude this code from outputs. You can add following args '-s 200'")
-				print(f"{TerminalColor.Orange}example 'python3 DirRunner.py dir -u https://www.domain.com -s 200'{TerminalColor.Reset}")
+				print(f"[{TerminalColor.Red}-{TerminalColor.Reset}] The website return a status code {TerminalColor.Orange}{res.status_code}{TerminalColor.Reset} for non existing urls {TerminalColor.Orange}{URL_TO_REQUEST}{TerminalColor.Reset}, please exclude this code from outputs.")
+				print(f"{TerminalColor.Orange}type 'python3 DirRunner.py fuzz -h' for commands{TerminalColor.Reset}")
 				return True
 
 		except requests.exceptions.Timeout:
@@ -316,3 +347,53 @@ class FUZZ_OUTPUT:
 		else:
 			with open(FUZZ_OPTION.OUTPUT, 'w') as f:
 				f.write("")
+
+
+class FUZZ_HELP:
+		def Help():
+			print("""FUZZ - Help menu
+
+Uses Fuzz enumeration mode
+
+Usage:
+  python3 DirRunner.py dir [args]
+
+Args
+	-u, --url                 set target url (required)
+	-a, --user-agent          set user-agent 'DirRunner v1.0' by default
+	-s, --status-code         set the status code to print (200,301)
+	-w, --wordlist            set wordlist file
+	-t, --threads             set threads
+	-m, --method              set method (GET/POST/DELETE/OPTION/PUT/HEAD) for HTTP requests, GET by default.
+	-h, --help                show this message
+	-c, --cookie              set cookies to use for the requests
+	-k, --no-tls-validation   skip TLS certificate verification
+	-P, --password            Password for Basic Auth
+	-U, --username            Username for Basic Auth
+	    --timeout             HTTP Timeout (default 15s)
+
+Generate outputs files
+     -o,--output: set filename to save data,
+                  txt format :  -o report.txt
+                  html format : -o report.html
+
+Examples:
+
+	dir enumeration
+	use: python3 DirRunner.py fuzz -u https://www.domain.com/FUZZ -w wordlist.txt
+
+	print only status code 200 and 301
+	use: python3 DirRunner.py fuzz -u https://www.domain.com/FUZZ -w wordlist.txt -s 200,301
+
+	txt output
+	use: python3 DirRunner.py fuzz -u https://www.domain.com/FUZZ -w wordlist.txt -o report.txt
+
+	html output
+	use: python3 DirRunner.py fuzz -u https://www.domain.com/FUZZ -w wordlist.txt -o report.html
+
+				""")
+			sys.exit()
+
+
+
+

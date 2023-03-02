@@ -14,6 +14,12 @@ class FILE_OPTION:
 	THREADS=10
 	OUTPUT=""
 	EXTENSIONS=[]
+	HELP=False
+	NO_TLS_VALIDATION=True
+	TIMEOUT=15
+	COOKIE=""
+	USERNAME=""
+	PASSWORD=""
 
 class FILE_MODULE:
 
@@ -24,6 +30,15 @@ class FILE_MODULE:
 		FILE_OPTION.WORDLIST=args.wordlist
 		FILE_OPTION.USER_AGENT=args.user_agent
 		FILE_OPTION.THREADS=args.threads
+		FILE_OPTION.HELP=args.help
+		FILE_OPTION.TIMEOUT=int(args.timeout)
+		FILE_OPTION.NO_TLS_VALIDATION=args.no_tls_validation
+		FILE_OPTION.COOKIE=args.cookie
+		FILE_OPTION.USERNAME=args.username
+		FILE_OPTION.password=args.password
+
+		if FILE_OPTION.HELP==True:
+			FILE_HELP.Help()
 
 		if args.exts:
 			FILE_OPTION.EXTENSIONS=args.exts.split(",")
@@ -37,7 +52,7 @@ class FILE_MODULE:
 		if not FILE_OPTION.TARGET_URL or not FILE_OPTION.EXTENSIONS:
 			print(TerminalColor.Red +"target url and exts file are required!"+TerminalColor.Reset)
 			print(f"{TerminalColor.Orange}example 'python3 DirRunner.py file -u https://www.domain.com -x txt,php'{TerminalColor.Reset}")
-			print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py help' for commands{TerminalColor.Reset}")
+			print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py file -h' for commands{TerminalColor.Reset}")
 			sys.exit()
 		else:
 			if not FILE_OPTION.WORDLIST:
@@ -57,18 +72,23 @@ class FILE_MODULE:
 
 			try:
 				print(f'[{TerminalColor.Blue}!{TerminalColor.Reset}] {TerminalColor.Orange}Checking connection for {FILE_OPTION.TARGET_URL}{TerminalColor.Reset}')
-				headers={"User-Agent":f"{FILE_OPTION.USER_AGENT}"}
-				res = requests.get(FILE_OPTION.TARGET_URL,headers=headers,allow_redirects=False,timeout=5)
+				headers={"User-Agent":f"{FILE_OPTION.USER_AGENT}","cookie":FILE_OPTION.COOKIE}
+
+				res = requests.get(FILE_OPTION.TARGET_URL,allow_redirects=False,auth=(FILE_OPTION.USERNAME, FILE_OPTION.PASSWORD),headers=headers,timeout=FILE_OPTION.TIMEOUT,verify=FILE_OPTION.NO_TLS_VALIDATION)
 				print(f'[{TerminalColor.Green}+{TerminalColor.Reset}]{TerminalColor.Green} Connection OK!{TerminalColor.Reset}')
 
 			except requests.exceptions.Timeout:
 				print(f"{TerminalColor.Red}Timeout for {FILE_OPTION.TARGET_URL}{TerminalColor.Reset}")
 				sys.exit()
-			except requests.exceptions.ConnectionError as e:
-				print(f"{TerminalColor.Red}Connection error: {e}{TerminalColor.Reset}")
+			except requests.exceptions.SSLError:
+				print(f"{TerminalColor.Red}SSL verification error! add -k arg to ignore.{FILE_OPTION.TARGET_URL}{TerminalColor.Reset}")
+				print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py file -h' for commands{TerminalColor.Reset}")
 				sys.exit()
 			except requests.exceptions.TooManyRedirects:
 				print(f"{TerminalColor.Red}Too may redirect for {FILE_OPTION.TARGET_URL}{TerminalColor.Reset}")
+				sys.exit()
+			except requests.exceptions.ConnectionError as e:
+				print(f"{TerminalColor.Red}Connection error: {e}{TerminalColor.Reset}")
 				sys.exit()
 			except requests.exceptions.RequestException as e:
 				raise SystemExit(e)
@@ -78,12 +98,27 @@ class FILE_MODULE:
 
 
 	def Banner():
-		print(f"""- Target: {TerminalColor.Green}{FILE_OPTION.TARGET_URL}{TerminalColor.Reset}
+		Message=f"""- Target: {TerminalColor.Green}{FILE_OPTION.TARGET_URL}{TerminalColor.Reset}
 - Attack mode: {TerminalColor.Green}{FILE_OPTION.MODULE_NAME}{TerminalColor.Reset}
 - Threads: {TerminalColor.Green}{FILE_OPTION.THREADS}{TerminalColor.Reset}
 - Extensions: {TerminalColor.Green}{FILE_OPTION.EXTENSIONS}{TerminalColor.Reset}
 - User-agent: {TerminalColor.Green}{FILE_OPTION.USER_AGENT}{TerminalColor.Reset}
 - Wordlist file: {TerminalColor.Green}{FILE_OPTION.WORDLIST}{TerminalColor.Reset}
+- Timeout: {TerminalColor.Green}{FILE_OPTION.TIMEOUT}s{TerminalColor.Reset}"""
+
+		if FILE_OPTION.COOKIE:
+			Message=f"""{Message}
+- Cookie: {TerminalColor.Green}{FILE_OPTION.COOKIE}{TerminalColor.Reset}"""
+
+		if FILE_OPTION.USERNAME:
+			Message=f"""{Message}
+- Username (http auth): {TerminalColor.Green}{FILE_OPTION.USERNAME}{TerminalColor.Reset}"""
+
+		if FILE_OPTION.NO_TLS_VALIDATION==False:
+			Message=f"""{Message}
+- TLS Validation: {TerminalColor.Green}{FILE_OPTION.NO_TLS_VALIDATION}{TerminalColor.Reset}"""
+		
+		print(f"""{Message}
 ======================================================================================================""")
 
 class FILE_TASK:
@@ -103,7 +138,7 @@ class FILE_TASK:
 
 	def Run(Line=""):
 
-		HEADERS={"User-Agent":f"{FILE_OPTION.USER_AGENT}"}
+		headers={"User-Agent":f"{FILE_OPTION.USER_AGENT}","cookie":FILE_OPTION.COOKIE}
 
 		READ_URL = FILE_OPTION.TARGET_URL[len(FILE_OPTION.TARGET_URL) - 1]
 		if READ_URL =='/':
@@ -116,7 +151,7 @@ class FILE_TASK:
 		for extension in FILE_OPTION.EXTENSIONS:
 			BUILD_URL_TO_REQUEST=f'{URL_TO_REQUEST}.{extension.replace(".","")}'
 			try:
-				res = requests.get(BUILD_URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=15)
+				res = requests.get(BUILD_URL_TO_REQUEST,allow_redirects=False,auth=(FILE_OPTION.USERNAME, FILE_OPTION.PASSWORD),headers=headers,timeout=FILE_OPTION.TIMEOUT,verify=FILE_OPTION.NO_TLS_VALIDATION)
 
 				if res.status_code==200:
 					print(f'[{TerminalColor.Green}+{TerminalColor.Reset}] {TerminalColor.Green}{BUILD_URL_TO_REQUEST}{TerminalColor.Reset}                        ')
@@ -202,6 +237,47 @@ class FILE_OUTPUT:
 		else:
 			with open(FILE_OPTION.OUTPUT, 'w') as f:
 				f.write("")
+
+class FILE_HELP:
+		def Help():
+			print("""File - Help menu
+
+Uses file enumeration mode
+
+Usage:
+  python3 DirRunner.py file [args]
+
+Args
+	-u, --url                 set target url (required)
+	-x, --exts                set exts files [txt,php] (required)
+	-a, --user-agent          set user-agent 'DirRunner v1.0' by default
+	-w, --wordlist            set wordlist file
+	-t, --threads             set threads
+	-h, --help                show this message
+	-c, --cookie              set cookies to use for the requests
+	-k, --no-tls-validation   skip TLS certificate verification
+	-P, --password            Password for Basic Auth
+	-U, --username            Username for Basic Auth
+	    --timeout             HTTP Timeout (default 15s)
+
+Generate outputs files
+     -o,--output: set filename to save data,
+                  txt format :  -o report.txt
+                  html format : -o report.html
+
+Examples:
+
+	file enumeration
+	use: python3 DirRunner.py file -u https://www.domain.com/ -w wordlist.txt -x txt,php
+
+	txt output
+	use: python3 DirRunner.py file -u https://www.domain.com/ -w wordlist.txt -x txt,php -o report.txt
+
+	html output
+	use: python3 DirRunner.py file -u https://www.domain.com/ -w wordlist.txt -x txt,php -o report.html
+
+				""")
+			sys.exit()
 
 
 

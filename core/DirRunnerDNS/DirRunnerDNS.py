@@ -12,6 +12,7 @@ class DNS_OPTIONS:
 	TARGET_DOMAIN=""
 	THREADS=10
 	OUTPUT=""
+	HELP=False
 
 class DNS_MODULE:
 
@@ -21,6 +22,10 @@ class DNS_MODULE:
 		DNS_OPTIONS.WORDLIST=args.wordlist
 		DNS_OPTIONS.TARGET_DOMAIN=args.domain
 		DNS_OPTIONS.THREADS=args.threads
+		DNS_OPTIONS.HELP=args.help
+
+		if DNS_OPTIONS.HELP==True:
+			DNS_HELP.Help()
 
 		if args.output:
 			now = datetime.now()
@@ -30,7 +35,7 @@ class DNS_MODULE:
 		if not DNS_OPTIONS.TARGET_DOMAIN:
 			print(TerminalColor.Red +"target domain is required!"+TerminalColor.Reset)
 			print(f"{TerminalColor.Orange}example 'python3 DirRunner.py dns -d domain.com'{TerminalColor.Reset}")
-			print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py help' for commands{TerminalColor.Reset}")
+			print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py dns -h' for commands{TerminalColor.Reset}")
 			sys.exit()
 		else:
 			if not DNS_OPTIONS.WORDLIST:
@@ -164,6 +169,39 @@ class DNS_OUTPUT:
 
 
 
+class DNS_HELP:
+		def Help():
+			print("""DNS - Help menu
+
+Uses DNS enumeration mode
+
+Usage:
+  python3 DirRunner.py dns [args]
+
+Args
+	-d, --domain        set target domain (required)
+	-w, --wordlist      set wordlist file
+	-t, --threads       set threads
+	-h, --help          show this message
+
+Generate outputs files
+     -o,--output: set filename to save data,
+                  txt format :  -o report.txt
+                  html format : -o report.html
+
+Examples:
+
+	dns enumeration
+	use: python3 DirRunner.py dns -d domain.com -w wordlist.txt
+
+	txt output
+	use: python3 DirRunner.py dns -d domain.com -w wordlist.txt -o report.txt
+
+	html output
+	use: python3 DirRunner.py dns -d domain.com -w wordlist.txt -o report.html
+
+				""")
+			sys.exit()
 
 
 

@@ -7,6 +7,8 @@ import concurrent.futures
 import string
 import random
 from datetime import datetime
+import urllib3
+urllib3.disable_warnings()
 
 class DIRECTORY_OPTION:
 	MODULE_NAME="Directories enumeration"
@@ -17,6 +19,12 @@ class DIRECTORY_OPTION:
 	THREADS=10
 	STATUS_CODE=[]
 	OUTPUT=""
+	HELP=False
+	NO_TLS_VALIDATION=True
+	TIMEOUT=15
+	COOKIE=""
+	USERNAME=""
+	PASSWORD=""
 
 class DIRECTORY_MODULE:
 
@@ -29,6 +37,15 @@ class DIRECTORY_MODULE:
 		DIRECTORY_OPTION.THREADS=args.threads
 		DIRECTORY_OPTION.STATUS_CODE=args.status_code.split(",")
 		DIRECTORY_OPTION.METHODS=args.method.split(",")
+		DIRECTORY_OPTION.HELP=args.help
+		DIRECTORY_OPTION.TIMEOUT=int(args.timeout)
+		DIRECTORY_OPTION.NO_TLS_VALIDATION=args.no_tls_validation
+		DIRECTORY_OPTION.COOKIE=args.cookie
+		DIRECTORY_OPTION.USERNAME=args.username
+		DIRECTORY_OPTION.password=args.password
+
+		if DIRECTORY_OPTION.HELP==True:
+			DIRECTORY_HELP.Help()
 
 		if args.output:
 			now = datetime.now()
@@ -38,7 +55,7 @@ class DIRECTORY_MODULE:
 		if not DIRECTORY_OPTION.TARGET_URL:
 			print(TerminalColor.Red +"target url is required!"+TerminalColor.Reset)
 			print(f"{TerminalColor.Orange}example 'python3 DirRunner.py dir -u https://www.domain.com'{TerminalColor.Reset}")
-			print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py help' for commands{TerminalColor.Reset}")
+			print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py dir -h' for commands{TerminalColor.Reset}")
 			sys.exit()
 		else:
 			if not DIRECTORY_OPTION.WORDLIST:
@@ -58,42 +75,58 @@ class DIRECTORY_MODULE:
 
 			try:
 				print(f'[{TerminalColor.Blue}!{TerminalColor.Reset}] {TerminalColor.Orange}Checking connection for {DIRECTORY_OPTION.TARGET_URL}{TerminalColor.Reset}')
-				headers={"User-Agent":f"{DIRECTORY_OPTION.USER_AGENT}"}
-				res = requests.get(DIRECTORY_OPTION.TARGET_URL,headers=headers,allow_redirects=False,timeout=5)
+				headers={"User-Agent":f"{DIRECTORY_OPTION.USER_AGENT}","cookie":DIRECTORY_OPTION.COOKIE}
+
+				res = requests.get(DIRECTORY_OPTION.TARGET_URL,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 				print(f'[{TerminalColor.Green}+{TerminalColor.Reset}]{TerminalColor.Green} Connection OK!{TerminalColor.Reset}')
 
 			except requests.exceptions.Timeout:
 				print(f"{TerminalColor.Red}Timeout for {DIRECTORY_OPTION.TARGET_URL}{TerminalColor.Reset}")
 				sys.exit()
-			except requests.exceptions.ConnectionError as e:
-				print(f"{TerminalColor.Red}Connection error: {e}{TerminalColor.Reset}")
+			except requests.exceptions.SSLError:
+				print(f"{TerminalColor.Red}SSL verification error! add -k arg to ignore.{DIRECTORY_OPTION.TARGET_URL}{TerminalColor.Reset}")
+				print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py dir -h' for commands{TerminalColor.Reset}")
 				sys.exit()
 			except requests.exceptions.TooManyRedirects:
 				print(f"{TerminalColor.Red}Too may redirect for {DIRECTORY_OPTION.TARGET_URL}{TerminalColor.Reset}")
+				sys.exit()
+			except requests.exceptions.ConnectionError as e:
+				print(f"{TerminalColor.Red}Connection error: {e}{TerminalColor.Reset}")
 				sys.exit()
 			except requests.exceptions.RequestException as e:
 				raise SystemExit(e)
 				sys.exit()
 
-			if "302" in DIRECTORY_OPTION.STATUS_CODE:
-				if DIRECTORY_TASK.NonExistingUrlCheck(302):
-					sys.exit()
-
-			if "301" in DIRECTORY_OPTION.STATUS_CODE:
-				if DIRECTORY_TASK.NonExistingUrlCheck(301):
+			for code in DIRECTORY_OPTION.STATUS_CODE:
+				if DIRECTORY_TASK.NonExistingUrlCheck(int(code)):
 					sys.exit()
 
 			DIRECTORY_TASK.Threads()
 
 
 	def Banner():
-		print(f"""- Target: {TerminalColor.Green}{DIRECTORY_OPTION.TARGET_URL}{TerminalColor.Reset}
+		Message=f"""- Target: {TerminalColor.Green}{DIRECTORY_OPTION.TARGET_URL}{TerminalColor.Reset}
 - Method: {TerminalColor.Green}{DIRECTORY_OPTION.METHODS}{TerminalColor.Reset}
 - Attack mode: {TerminalColor.Green}{DIRECTORY_OPTION.MODULE_NAME}{TerminalColor.Reset}
 - Threads: {TerminalColor.Green}{DIRECTORY_OPTION.THREADS}{TerminalColor.Reset}
 - Status code: {TerminalColor.Green}{DIRECTORY_OPTION.STATUS_CODE}{TerminalColor.Reset}
 - User-agent: {TerminalColor.Green}{DIRECTORY_OPTION.USER_AGENT}{TerminalColor.Reset}
 - Wordlist file: {TerminalColor.Green}{DIRECTORY_OPTION.WORDLIST}{TerminalColor.Reset}
+- Timeout: {TerminalColor.Green}{DIRECTORY_OPTION.TIMEOUT}{TerminalColor.Reset}"""
+
+		if DIRECTORY_OPTION.COOKIE:
+			Message=f"""{Message}
+- Cookie: {TerminalColor.Green}{DIRECTORY_OPTION.COOKIE}{TerminalColor.Reset}"""
+
+		if DIRECTORY_OPTION.USERNAME:
+			Message=f"""{Message}
+- Username (http auth): {TerminalColor.Green}{DIRECTORY_OPTION.USERNAME}{TerminalColor.Reset}"""
+
+		if DIRECTORY_OPTION.NO_TLS_VALIDATION==False:
+			Message=f"""{Message}
+- TLS Validation: {TerminalColor.Green}{DIRECTORY_OPTION.NO_TLS_VALIDATION}{TerminalColor.Reset}"""
+		
+		print(f"""{Message}
 ======================================================================================================""")
 
 class DIRECTORY_TASK:
@@ -113,7 +146,7 @@ class DIRECTORY_TASK:
 
 	def Run(Line=""):
 
-		HEADERS={"User-Agent":f"{DIRECTORY_OPTION.USER_AGENT}"}
+		headers={"User-Agent":f"{DIRECTORY_OPTION.USER_AGENT}","cookie":DIRECTORY_OPTION.COOKIE}
 
 		READ_URL = DIRECTORY_OPTION.TARGET_URL[len(DIRECTORY_OPTION.TARGET_URL) - 1]
 		if READ_URL =='/':
@@ -125,27 +158,27 @@ class DIRECTORY_TASK:
 
 		try:
 			if "GET" in DIRECTORY_OPTION.METHODS:
-				res = requests.get(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.get(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 				DIRECTORY_OUTPUT.ReadResponseCode(res,Line,"GET",URL_TO_REQUEST)
 
 			if "POST" in DIRECTORY_OPTION.METHODS:
-				res = requests.post(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.post(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 				DIRECTORY_OUTPUT.ReadResponseCode(res,Line,"POST",URL_TO_REQUEST)
 
 			if "PUT" in DIRECTORY_OPTION.METHODS:
-				res = requests.put(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.put(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 				DIRECTORY_OUTPUT.ReadResponseCode(res,Line,"PUT",URL_TO_REQUEST)
 
 			if "HEAD" in DIRECTORY_OPTION.METHODS:
-				res = requests.head(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.head(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 				DIRECTORY_OUTPUT.ReadResponseCode(res,Line,"HEAD",URL_TO_REQUEST)
 
 			if "DELETE" in DIRECTORY_OPTION.METHODS:
-				res = requests.delete(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.delete(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 				DIRECTORY_OUTPUT.ReadResponseCode(res,Line,"DELETE",URL_TO_REQUEST)
 
 			if "OPTION" in DIRECTORY_OPTION.METHODS:
-				res = requests.option(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.option(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 				DIRECTORY_OUTPUT.ReadResponseCode(res,Line,"OPTION",URL_TO_REQUEST)
 	
 		except requests.exceptions.Timeout:
@@ -158,7 +191,7 @@ class DIRECTORY_TASK:
 
 	def NonExistingUrlCheck(Code):
 
-		HEADERS={"User-Agent":f"{DIRECTORY_OPTION.USER_AGENT}"}
+		headers={"User-Agent":f"{DIRECTORY_OPTION.USER_AGENT}","cookie":DIRECTORY_OPTION.COOKIE}
 
 		RANDOM_URL=DIRECTORY_TASK.RandomStrings()
 		READ_URL = DIRECTORY_OPTION.TARGET_URL[len(DIRECTORY_OPTION.TARGET_URL) - 1]
@@ -174,26 +207,26 @@ class DIRECTORY_TASK:
 
 		try:
 			if "GET" in DIRECTORY_OPTION.METHODS:
-				res = requests.get(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.get(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 
 			if "POST" in DIRECTORY_OPTION.METHODS:
-				res = requests.post(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.post(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 
 			if "PUT" in DIRECTORY_OPTION.METHODS:
-				res = requests.put(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.put(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 
 			if "HEAD" in DIRECTORY_OPTION.METHODS:
-				res = requests.head(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.head(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION0)
 
 			if "DELETE" in DIRECTORY_OPTION.METHODS:
-				res = requests.delete(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.delete(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 
 			if "OPTION" in DIRECTORY_OPTION.METHODS:
-				res = requests.option(URL_TO_REQUEST,headers=HEADERS,allow_redirects=False,timeout=10)
+				res = requests.option(URL_TO_REQUEST,auth=(DIRECTORY_OPTION.USERNAME, DIRECTORY_OPTION.PASSWORD),headers=headers,allow_redirects=False,timeout=DIRECTORY_OPTION.TIMEOUT,verify=DIRECTORY_OPTION.NO_TLS_VALIDATION)
 
 			if res.status_code==Code:
-				print(f"[{TerminalColor.Red}-{TerminalColor.Reset}] The website return a status code {TerminalColor.Orange}{res.status_code}{TerminalColor.Reset} for non existing urls {TerminalColor.Orange}{URL_TO_REQUEST}{TerminalColor.Reset}, please exclude this code from outputs. You can add following args '-s 200'")
-				print(f"{TerminalColor.Orange}example 'python3 DirRunner.py dir -u https://www.domain.com -s 200'{TerminalColor.Reset}")
+				print(f"[{TerminalColor.Red}-{TerminalColor.Reset}] The website return a status code {TerminalColor.Orange}{res.status_code}{TerminalColor.Reset} for non existing urls {TerminalColor.Orange}{URL_TO_REQUEST}{TerminalColor.Reset}, please exclude this code from outputs.")
+				print(f"{TerminalColor.Orange}type 'python3 DirRunner.py dir -h' for commands{TerminalColor.Reset}")
 				return True
 
 		except requests.exceptions.Timeout:
@@ -321,6 +354,50 @@ class DIRECTORY_OUTPUT:
 			with open(DIRECTORY_OPTION.OUTPUT, 'w') as f:
 				f.write("")
 
+class DIRECTORY_HELP:
+		def Help():
+			print("""Directory - Help menu
+
+Uses directory enumeration mode
+
+Usage:
+  python3 DirRunner.py dir [args]
+
+Args
+	-u, --url                 set target url (required)
+	-a, --user-agent          set user-agent 'DirRunner v1.0' by default
+	-s, --status-code         set the status code to print (200,301)
+	-w, --wordlist            set wordlist file
+	-t, --threads             set threads
+	-m, --method              set method (GET/POST/DELETE/OPTION/PUT/HEAD) for HTTP requests, GET by default.
+	-h, --help                show this message
+	-c, --cookie              set cookies to use for the requests
+	-k, --no-tls-validation   skip TLS certificate verification
+	-P, --password            Password for Basic Auth
+	-U, --username            Username for Basic Auth
+	    --timeout             HTTP Timeout (default 15s)
+
+Generate outputs files
+     -o,--output: set filename to save data,
+                  txt format :  -o report.txt
+                  html format : -o report.html
+
+Examples:
+
+	dir enumeration
+	use: python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt
+
+	print only status code 200 and 301
+	use: python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt -s 200,301
+
+	txt output
+	use: python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt -o report.txt
+
+	html output
+	use: python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt -o report.html
+
+				""")
+			sys.exit()
 
 
 

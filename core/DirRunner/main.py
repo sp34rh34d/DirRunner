@@ -38,45 +38,5 @@ class Banner:
  L:                                                            ,              ,
 Coded by:{TerminalColor.Red} Adonis Izaguirre {TerminalColor.Reset} Email:{TerminalColor.Red} adonis.izaguirre@kapa7.com / adons@outlook.com {TerminalColor.Reset}
 twitter: {TerminalColor.Red}@AdonsIzaguirre{TerminalColor.Reset}
-Welcome to DirRunner v1.0 {TerminalColor.Green}https://github.com/AdonsIzaguirre/DirRunner{TerminalColor.Reset}
+Welcome to DirRunner v1.0 [{TerminalColor.Green}https://github.com/AdonsIzaguirre/DirRunner{TerminalColor.Reset}]
 ======================================================================================================""")
-
-	def Help():
-		print("""
--u: set target url
--d: set target domain
--a: set user-agent
--x: set target extensions files (php,txt,html)
--s: set the status code to print (200,301)
--w: set wordlist
--t: set threads
--m: set method (GET/POST), GET by default.
--h: show this message
-
-output
--oT: for TXT output file
--oX: for XML output file
--oH: for HTML output file
-
-dns enumeration
-use: python3 DirRunner.py dns -d domain.com -w wordlist.txt
-
-dns enumeration with TXT output
-use: python3 DirRunner.py dns -d domain.com -w wordlist.txt -oT dns-output.txt
-
-dir enumeration
-use: python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt
-
-print only status code 200 and 301
-use: python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt -s 200,301
-
-file detection by extensions
-use: python3 DirRunner.py file -u https://www.domain.com/ -w wordlist.txt -x php,txt
-
-fingerprint
-use: python3 DirRunner.py fingerprint -u https://www.domain.com 
-
-fuzz 
-use: python3 DirRunner.py fuzz -u https://www.domain.com/FUZZ -w wordlist.txt
-
-""")
