@@ -5,6 +5,8 @@ import requests
 from pathlib import Path
 from datetime import datetime
 import concurrent.futures
+import urllib3
+urllib3.disable_warnings()
 
 class FILE_OPTION:
 	MODULE_NAME="File enumeration"

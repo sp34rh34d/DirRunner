@@ -64,15 +64,15 @@ class FINGERPRINT_MODULE:
 			except requests.exceptions.Timeout:
 				print(f"{TerminalColor.Red}Timeout for {FINGERPRINT_OPTIONS.TARGET_URL}{TerminalColor.Reset}")
 				sys.exit()
-			except requests.exceptions.ConnectionError as e:
-				print(f"{TerminalColor.Red}Connection error: {e}{TerminalColor.Reset}")
-				sys.exit()
 			except requests.exceptions.TooManyRedirects:
 				print(f"{TerminalColor.Red}Too may redirect for {FINGERPRINT_OPTIONS.TARGET_URL}{TerminalColor.Reset}")
 				sys.exit()
 			except requests.exceptions.SSLError:
 				print(f"{TerminalColor.Red}SSL verification error! add -k arg to ignore.{FINGERPRINT_OPTIONS.TARGET_URL}{TerminalColor.Reset}")
 				print(f"{TerminalColor.Orange}Type 'python3 DirRunner.py fingerprint -h' for commands{TerminalColor.Reset}")
+				sys.exit()
+			except requests.exceptions.ConnectionError as e:
+				print(f"{TerminalColor.Red}Connection error: {e}{TerminalColor.Reset}")
 				sys.exit()
 			except requests.exceptions.RequestException as e:
 				raise SystemExit(e)

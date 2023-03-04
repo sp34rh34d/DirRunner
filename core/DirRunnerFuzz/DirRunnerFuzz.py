@@ -7,6 +7,8 @@ import concurrent.futures
 import string
 import random
 from datetime import datetime
+import urllib3
+urllib3.disable_warnings()
 
 class FUZZ_OPTION:
 	MODULE_NAME="Fuzz enumeration"
