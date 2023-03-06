@@ -8,6 +8,7 @@ Usage:
 Modules
 	dir          Uses directory enumeration mode
 	dns          Uses DNS subdomain enumeration mode
+	vhost        Uses Virtual Host enumeration mode
 	file         Uses file enumeration mode
 	fingerprint  Uses to detect web technologies
 	fuzz         Uses fuzzing mode
@@ -29,6 +30,9 @@ Examples:
 
 	dir enumeration
 	use: python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt
+
+	vhost enumeration with 30 threads
+	use: python3 DirRunner.py vhost -d domain.com -u http://10.10.10.10 -t 30
 
 	print only status code 200 and 301
 	use: python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt -s 200,301

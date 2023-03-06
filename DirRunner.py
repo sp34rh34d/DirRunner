@@ -7,6 +7,7 @@ from core.DirRunnerDir.DirRunnerDirectory import *
 from core.DirRunnerFuzz.DirRunnerFuzz import *
 from core.DirRunnerFile.DirRunnerFile import *
 from core.DirRunnerHelp.DirRunnerHelp import *
+from core.DirRunnerVHost.DirRunnerVHost import *
 
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument('-u','--url',help='Set target URL on Dir enumeration attack')
@@ -38,5 +39,7 @@ if ATTACK_MODE == 'fuzz':
 	FUZZ_MODULE.main(args)
 if ATTACK_MODE == 'file':
 	FILE_MODULE.main(args)
+if ATTACK_MODE == 'vhost':
+	VHOST_MODULE.main(args)
 if ATTACK_MODE == 'help':
 	HELP_MODULE.main()
