@@ -1,9 +1,10 @@
 # DirRunner
-DNS, Directories, file enumeration and fingerprint tool
+DNS, Directories,virtual host, file enumeration and fingerprint tool
 
 <h3>Modules</h3>
 <li>dir         - Uses directory enumeration mode</li>
 <li>dns         - Uses DNS subdomain enumeration mode</li>
+<li>vhost       - Uses Virtual Host enumeration mode</li>
 <li>file        - Uses file enumeration mode</li>
 <li>fingerprint - Uses to detect web technologies</li>
 <li>fuzz        - Uses fuzzing mode</li>
@@ -63,6 +64,13 @@ Print only codes 200 and 301
 ```
   python3 DirRunner.py dir -u https://www.domain.com/ -w wordlist.txt -s 200,301
 ```
+
+Virtual host enumeration mode:
+```
+  python3 DirRunner.py vhost -d domain.thm -u http://10.10.10.10 -t 30
+```
+![ezgif com-video-to-gif](https://user-images.githubusercontent.com/94752464/223283537-7f30d56b-27ca-4862-8278-4a79fa750758.gif)
+
 
 Fuzz enumeration mode:
 ```
