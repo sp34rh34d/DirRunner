@@ -110,7 +110,7 @@ class VHOST_TASKS:
 		print(f'processing: {HOSTNAME}                          ',end="\r")
 
 		try:
-			res = requests.get(VHOST_OPTIONS.TARGET_URL,headers=headers,allow_redirects=False,timeout=1,verify=VHOST_OPTIONS.NO_TLS_VALIDATION)
+			res = requests.get(VHOST_OPTIONS.TARGET_URL,headers=headers,allow_redirects=False,timeout=2,verify=VHOST_OPTIONS.NO_TLS_VALIDATION)
 			VHOST_OUTPUT.ReadResponseCode(res,HOSTNAME)
 	
 		except requests.exceptions.SSLError:
