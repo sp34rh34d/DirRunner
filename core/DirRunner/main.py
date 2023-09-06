@@ -36,7 +36,7 @@ class Banner:
  E##D.        E#t DWi   ,KK:  DWi   ,KK:  EL      ..         G#E ..         G#E        tt  DWi   ,KK: 
  E#t          ,;.                         :                   fE             fE                       
  L:                                                            ,              ,
-Coded by:{TerminalColor.Red} Adonis Izaguirre {TerminalColor.Reset} Email:{TerminalColor.Red} adonis.izaguirre@kapa7.com / adons@outlook.com {TerminalColor.Reset}
+Coded by:{TerminalColor.Red} sp34rh34d {TerminalColor.Reset} Email:{TerminalColor.Red} adonis.izaguirre@kapa7.com / adons@outlook.com {TerminalColor.Reset}
 twitter: {TerminalColor.Red}@AdonsIzaguirre{TerminalColor.Reset}
-Welcome to DirRunner v1.0 [{TerminalColor.Green}https://github.com/AdonsIzaguirre/DirRunner{TerminalColor.Reset}]
+Welcome to DirRunner v1.0 [{TerminalColor.Green}https://github.com/sp34rh34d/DirRunner{TerminalColor.Reset}]
 ======================================================================================================""")
