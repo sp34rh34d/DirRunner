@@ -49,7 +49,7 @@ class Banner:
 /____/_/_/ /_/|_|\_,_/_//_/_//_/\__/_/ 
 	                                
 Coded by:{c.Red} sp34rh34d {c.Reset}
-twitter: {c.Red}@AdonsIzaguirre{c.Reset}
+twitter: {c.Red}@spearh34d{c.Reset}
 Welcome to DirRunner v1.2 [{c.Green}https://github.com/sp34rh34d/DirRunner{c.Reset}]
 ======================================================================================================""")
 		
