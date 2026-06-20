@@ -21,7 +21,7 @@ import (
 	"dirrunner/internal/output"
 )
 
-const UserAgent = "DirRunner v2.0"
+const UserAgent = "DirRunner v1.3.0"
 
 type HTTPOptions struct {
 	Method          string
