@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	mrand "math/rand"
 	"net"
 	"net/http"
 	"net/url"
@@ -23,9 +24,29 @@ import (
 
 const UserAgent = "DirRunner v1.3.0"
 
+// randomUserAgents is a small pool of common, real-world User-Agent strings
+// rotated per request when the --random-agent flag is set, to avoid trivial
+// User-Agent-based filtering.
+var randomUserAgents = []string{
+	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+	"Mozilla/5.0 (X11; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0",
+	"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0",
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+	"Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+	"Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36",
+	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0",
+}
+
+// RandomUserAgent returns a User-Agent chosen at random from the pool.
+func RandomUserAgent() string {
+	return randomUserAgents[mrand.Intn(len(randomUserAgents))]
+}
+
 type HTTPOptions struct {
 	Method          string
 	UserAgent       string
+	RandomUserAgent bool
 	Cookie          string
 	Username        string
 	Password        string
@@ -175,17 +196,29 @@ func NewRequest(ctx context.Context, method, rawURL string, body io.Reader, opts
 	if err != nil {
 		return nil, err
 	}
-	if opts.UserAgent == "" {
-		opts.UserAgent = UserAgent
+	ua := opts.UserAgent
+	switch {
+	case opts.RandomUserAgent:
+		ua = RandomUserAgent()
+	case ua == "":
+		ua = UserAgent
 	}
-	req.Header.Set("User-Agent", opts.UserAgent)
+	req.Header.Set("User-Agent", ua)
 	if opts.Cookie != "" {
 		req.Header.Set("Cookie", opts.Cookie)
 	}
 	for k, v := range opts.Headers {
-		if strings.TrimSpace(k) != "" {
-			req.Header.Set(k, v)
+		if strings.TrimSpace(k) == "" {
+			continue
 		}
+		// Go's HTTP client ignores a "Host" entry in Header; the Host header
+		// must be set through req.Host instead. This is what makes vhost
+		// enumeration (and FUZZ against the Host header) actually work.
+		if strings.EqualFold(k, "Host") {
+			req.Host = v
+			continue
+		}
+		req.Header.Set(k, v)
 	}
 	if opts.Username != "" || opts.Password != "" {
 		req.SetBasicAuth(opts.Username, opts.Password)
@@ -333,10 +366,23 @@ func RandomToken() string {
 	return hex.EncodeToString(b)
 }
 
+// maxDrainBytes caps how much of a response body we read just to enable
+// keep-alive connection reuse. Small bodies are drained so the connection is
+// pooled; large bodies (e.g. a site that serves its full HTML homepage on every
+// 404) are left unread so we never waste bandwidth downloading content a
+// directory scanner does not need.
+const maxDrainBytes = 64 * 1024
+
 func ResponseSize(resp *http.Response) int64 {
 	if resp.ContentLength >= 0 {
+		// Size is already known from the header. Only drain small bodies so the
+		// connection can be reused; skip large ones to keep requests fast.
+		if resp.ContentLength <= maxDrainBytes {
+			io.Copy(io.Discard, resp.Body)
+		}
 		return resp.ContentLength
 	}
+	// Unknown length (e.g. chunked): we must read the body to measure it.
 	n, _ := io.Copy(io.Discard, resp.Body)
 	return n
 }

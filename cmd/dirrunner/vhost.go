@@ -11,7 +11,7 @@ import (
 
 func runVHost(ctx context.Context, args []string) ([]output.Result, bool, string, error) {
 	fs := flag.NewFlagSet("vhost", flag.ExitOnError)
-	common := addHTTPFlags(fs, "wordlist/subdomains.txt", 10, 2*time.Second)
+	common := addHTTPFlags(fs, "wordlist/subdomains.txt", 40, 2*time.Second)
 	targetURL := ""
 	domain := ""
 	fs.StringVar(&targetURL, "url", "", "target URL or IP")

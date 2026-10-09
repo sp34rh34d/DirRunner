@@ -42,7 +42,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  dirrunner fingerprint -u https://example.com")
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Global flags: all modules")
-	fmt.Fprintln(os.Stderr, "  --threads / -t N       Concurrent workers, default 10")
+	fmt.Fprintln(os.Stderr, "  --threads / -t N       Concurrent workers, default 40")
 	fmt.Fprintln(os.Stderr, "  --json / -j            Print JSON output")
 	fmt.Fprintln(os.Stderr, "  --export / -o FILE     Write results to file")
 	fmt.Fprintln(os.Stderr, "  --verbose / -v         Print detailed diagnostics")
@@ -54,6 +54,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  --url / -u URL                 Target URL")
 	fmt.Fprintln(os.Stderr, "  --timeout / -T DURATION        Request timeout, e.g. 5s")
 	fmt.Fprintln(os.Stderr, "  --user-agent / -A VALUE        User-Agent header")
+	fmt.Fprintln(os.Stderr, "  --random-agent / -a            Random User-Agent per request")
 	fmt.Fprintln(os.Stderr, "  --cookie / -C VALUE            Cookie header")
 	fmt.Fprintln(os.Stderr, "  --header / -H 'Name: value'    Custom header, repeatable")
 	fmt.Fprintln(os.Stderr, "  --username / --user / -U VALUE Basic auth username")
@@ -115,7 +116,7 @@ func printHelpGroup(w *os.File, group helpGroup) {
 
 func globalHelpFlags(includeWordlist bool) []helpFlag {
 	flags := []helpFlag{
-		{Names: "--threads / -t", Use: "N", Desc: "concurrent workers, default 10"},
+		{Names: "--threads / -t", Use: "N", Desc: "concurrent workers, default 40"},
 		{Names: "--json / -j", Desc: "print JSON output"},
 		{Names: "--export / -o", Use: "FILE", Desc: "write results to a file"},
 		{Names: "--verbose / -v", Desc: "print detailed diagnostics"},
@@ -139,6 +140,7 @@ func httpBaseHelpFlags() []helpFlag {
 		{Names: "--url / -u", Use: "URL", Desc: "target URL"},
 		{Names: "--timeout / -T", Use: "DURATION", Desc: "request timeout, for example 5s"},
 		{Names: "--user-agent / -A", Use: "VALUE", Desc: "User-Agent header"},
+		{Names: "--random-agent / -a", Desc: "random User-Agent per request"},
 		{Names: "--cookie / -C", Use: "VALUE", Desc: "Cookie header"},
 		{Names: "--header / -H", Use: "'Name: value'", Desc: "custom header, repeatable"},
 		{Names: "--username / --user / -U", Use: "VALUE", Desc: "basic auth username"},

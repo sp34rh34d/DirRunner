@@ -40,7 +40,7 @@ These flags are available in all modules.
 
 | Flag | Description |
 | --- | --- |
-| `--threads / -t N` | Number of concurrent workers. Default is `10`. |
+| `--threads / -t N` | Number of concurrent workers. Default is `40`. |
 | `--json / -j` | Print results as JSON. |
 | `--export / -o FILE` | Write final results to a file. |
 | `--verbose / -v` | Print detailed diagnostic output. |
@@ -56,6 +56,7 @@ These flags are available in `dir`, `vhost`, `fuzz`, and `fingerprint`.
 | `--url / -u URL` | Target URL. |
 | `--timeout / -T DURATION` | HTTP request timeout, for example `5s` or `1500ms`. |
 | `--user-agent / -A VALUE` | Custom `User-Agent` header. |
+| `--random-agent / -a` | Use a random `User-Agent` per request. |
 | `--cookie / -C VALUE` | Cookie header value. |
 | `--header / -H 'Name: value'` | Custom HTTP header. Can be repeated. |
 | `--username / --user / -U VALUE` | HTTP Basic Auth username. |
@@ -366,6 +367,7 @@ Use `fingerprint` to inspect response status, size, server headers, security hea
 | `--url / -u URL` | Target URL. |
 | `--timeout / -T DURATION` | HTTP request timeout. |
 | `--user-agent / -A VALUE` | Custom User-Agent header. |
+| `--random-agent / -a` | Use a random User-Agent per request. |
 | `--cookie / -C VALUE` | Cookie header value. |
 | `--header / -H 'Name: value'` | Custom HTTP header. Can be repeated. |
 | `--username / --user / -U VALUE` | HTTP Basic Auth username. |

@@ -10,7 +10,7 @@ import (
 
 func runDNS(ctx context.Context, args []string) ([]output.Result, bool, string, error) {
 	fs := flag.NewFlagSet("dns", flag.ExitOnError)
-	common := addCommonFlags(fs, "wordlist/subdomains.txt", 10)
+	common := addCommonFlags(fs, "wordlist/subdomains.txt", 40)
 	target := ""
 	fs.StringVar(&target, "domain", "", "target domain")
 	fs.StringVar(&target, "d", "", "target domain")

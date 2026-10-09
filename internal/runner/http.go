@@ -9,30 +9,43 @@ import (
 )
 
 func executeHTTPRequest(ctx context.Context, client *http.Client, opts HTTPOptions, url string, codes map[int]struct{}) (output.Result, bool) {
+	result, _, matched, _ := doHTTPRequest(ctx, client, opts, url, codes)
+	return result, matched
+}
+
+// doHTTPRequest performs one request and reports, in addition to a matched
+// result, the observed status code and any transport error. Scans use these to
+// build a summary so a run that finds nothing can still explain why (all
+// requests errored, everything was 404, a WAF returned 403, ...).
+func doHTTPRequest(ctx context.Context, client *http.Client, opts HTTPOptions, url string, codes map[int]struct{}) (output.Result, int, bool, error) {
 	req, err := NewRequest(ctx, opts.Method, url, nil, opts)
 	if err != nil {
-		return output.Result{}, false
+		return output.Result{}, 0, false, err
 	}
+	method := strings.ToUpper(req.Method)
 	resp, err := client.Do(req)
 	if err != nil {
-		return output.Result{}, false
+		output.Debug("error %s %s: %v", method, url, err)
+		return output.Result{}, 0, false, err
 	}
 	defer resp.Body.Close()
-	if _, wanted := codes[resp.StatusCode]; !wanted {
-		return output.Result{}, false
+	status := resp.StatusCode
+	if _, wanted := codes[status]; !wanted {
+		output.Debug("skip %s %s status=%d", method, url, status)
+		return output.Result{}, status, false, nil
 	}
 	size := ResponseSize(resp)
 	if ExcludedSize(size, opts) {
-		output.Debug("excluded %s %s status=%d size=%d", strings.ToUpper(req.Method), url, resp.StatusCode, size)
-		return output.Result{}, false
+		output.Debug("excluded %s %s status=%d size=%d", method, url, status, size)
+		return output.Result{}, status, false, nil
 	}
-	output.Debug("matched %s %s status=%d size=%d", strings.ToUpper(req.Method), url, resp.StatusCode, size)
+	output.Debug("matched %s %s status=%d size=%d", method, url, status, size)
 	return output.Result{
-		Method:   strings.ToUpper(req.Method),
-		Status:   resp.StatusCode,
+		Method:   method,
+		Status:   status,
 		Size:     size,
 		Location: resp.Header.Get("Location"),
-	}, true
+	}, status, true, nil
 }
 
 func wildcardStatus(ctx context.Context, client *http.Client, opts HTTPOptions, target string, codes map[int]struct{}) (bool, error) {

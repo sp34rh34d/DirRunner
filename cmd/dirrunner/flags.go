@@ -31,6 +31,7 @@ type commonFlags struct {
 type httpFlags struct {
 	commonFlags
 	userAgent         *string
+	randomAgent       *bool
 	cookie            *string
 	username          *string
 	password          *string
@@ -70,6 +71,7 @@ func addHTTPFlags(fs *flag.FlagSet, defaultWordlist string, defaultWorkers int, 
 	export := ""
 	verbose := false
 	userAgent := runner.UserAgent
+	randomAgent := false
 	cookie := ""
 	username := ""
 	password := ""
@@ -92,6 +94,8 @@ func addHTTPFlags(fs *flag.FlagSet, defaultWordlist string, defaultWorkers int, 
 	fs.BoolVar(&verbose, "v", false, "print verbose progress")
 	fs.StringVar(&userAgent, "user-agent", runner.UserAgent, "User-Agent header")
 	fs.StringVar(&userAgent, "A", runner.UserAgent, "User-Agent header")
+	fs.BoolVar(&randomAgent, "random-agent", false, "use a random User-Agent per request")
+	fs.BoolVar(&randomAgent, "a", false, "use a random User-Agent per request")
 	fs.StringVar(&cookie, "cookie", "", "Cookie header")
 	fs.StringVar(&cookie, "C", "", "Cookie header")
 	fs.StringVar(&username, "username", "", "basic auth username")
@@ -120,6 +124,7 @@ func addHTTPFlags(fs *flag.FlagSet, defaultWordlist string, defaultWorkers int, 
 	return httpFlags{
 		commonFlags:       commonFlags{wordlist: &wordlist, workers: &workers, jsonOut: &jsonOut, export: &export, verbose: &verbose},
 		userAgent:         &userAgent,
+		randomAgent:       &randomAgent,
 		cookie:            &cookie,
 		username:          &username,
 		password:          &password,
@@ -150,7 +155,7 @@ func showOptions(title string, common commonFlags, rows [][2]string) {
 
 func httpOptionRows(h httpFlags) [][2]string {
 	return [][2]string{
-		{"User-Agent", *h.userAgent},
+		{"User-Agent", userAgentDisplay(*h.randomAgent, *h.userAgent)},
 		{"Cookie", activeValue(*h.cookie != "")},
 		{"Basic auth", activeValue(*h.username != "" || *h.password != "")},
 		{"Timeout", h.timeout.String()},
@@ -164,6 +169,13 @@ func httpOptionRows(h httpFlags) [][2]string {
 	}
 }
 
+func userAgentDisplay(random bool, value string) string {
+	if random {
+		return "random (rotating per request)"
+	}
+	return value
+}
+
 func activeValue(active bool) string {
 	if active {
 		return "enabled"
@@ -174,6 +186,7 @@ func activeValue(active bool) string {
 func (h httpFlags) options() runner.HTTPOptions {
 	return runner.HTTPOptions{
 		UserAgent:       *h.userAgent,
+		RandomUserAgent: *h.randomAgent,
 		Cookie:          *h.cookie,
 		Username:        *h.username,
 		Password:        *h.password,

@@ -12,7 +12,7 @@ import (
 
 func runFuzz(ctx context.Context, args []string) ([]output.Result, bool, string, error) {
 	fs := flag.NewFlagSet("fuzz", flag.ExitOnError)
-	common := addHTTPFlags(fs, "wordlist/directory.txt", 10, 10*time.Second)
+	common := addHTTPFlags(fs, "wordlist/directory.txt", 40, 10*time.Second)
 	target := ""
 	method := "GET"
 	codesRaw := "200,301,302"

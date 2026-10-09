@@ -9,10 +9,47 @@ import (
 	"strings"
 	"sync"
 	"text/tabwriter"
+	"time"
 )
 
 var Verbose bool
 var StreamResults bool
+
+// Version is set from main at startup and shown in the banner.
+var Version = "1.3.0"
+
+// termMu serializes writes to the terminal so the live progress line (stderr)
+// never interleaves with result lines (stdout) or log messages.
+var termMu sync.Mutex
+
+// progressTTY reports whether stderr is an interactive terminal. The live
+// progress bar (with carriage returns) is only drawn when it is; otherwise the
+// output is a plain, pipe-friendly stream with no control characters.
+var progressTTY = isTerminal(os.Stderr)
+
+func isTerminal(f *os.File) bool {
+	fi, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return fi.Mode()&os.ModeCharDevice != 0
+}
+
+// clearProgressLine erases the current in-place progress line so the next
+// message prints cleanly. No-op when stderr is not a terminal. Callers must
+// hold termMu.
+func clearProgressLine() {
+	if progressTTY {
+		fmt.Fprint(os.Stderr, "\r\033[K")
+	}
+}
+
+func emit(prefix, format string, args ...any) {
+	termMu.Lock()
+	defer termMu.Unlock()
+	clearProgressLine()
+	fmt.Fprintf(os.Stderr, prefix+format+"\n", args...)
+}
 
 type Result struct {
 	Type     string `json:"type"`
@@ -33,8 +70,8 @@ func Banner(w io.Writer) {
 	fmt.Fprintln(w, `  / _ \(_)___/ _ \__ _____  ___  ___ ____`)
 	fmt.Fprintln(w, ` / // / / __/ , _/ // / _ \/ _ \/ -_) __/`)
 	fmt.Fprintln(w, `/____/_/_/ /_/|_|\_,_/_//_/_//_/\__/_/`)
-	fmt.Fprintln(w,"By @spearh34d")
-	fmt.Fprintln(w, "DirRunner v1.3.0")
+	fmt.Fprintln(w, "By @spearh34d")
+	fmt.Fprintln(w, "DirRunner "+Version)
 	fmt.Fprintln(w, "DNS, recursive web-content, vhost, fuzz and fingerprint scanner")
 	fmt.Fprintln(w, strings.Repeat("-", 66))
 }
@@ -55,24 +92,29 @@ func OptionsMenu(w io.Writer, title string, rows [][2]string) error {
 }
 
 func Info(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "[*] "+format+"\n", args...)
+	emit("[*] ", format, args...)
 }
 
 func Warn(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "[!] "+format+"\n", args...)
+	emit("[!] ", format, args...)
 }
 
 func Debug(format string, args ...any) {
 	if Verbose {
-		fmt.Fprintf(os.Stderr, "[verbose] "+format+"\n", args...)
+		emit("[verbose] ", format, args...)
 	}
 }
 
+// progressRefresh throttles how often the live progress line is redrawn so a
+// fast scan does not flood the terminal with writes.
+const progressRefresh = 100 * time.Millisecond
+
 type ProgressTracker struct {
-	label   string
-	total   int
-	current int
-	mu      sync.Mutex
+	label     string
+	total     int
+	current   int
+	lastPrint time.Time
+	mu        sync.Mutex
 }
 
 func NewProgress(label string, total int) *ProgressTracker {
@@ -86,6 +128,11 @@ func (p *ProgressTracker) Advance() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.current++
+	// The in-place bar only makes sense on an interactive terminal.
+	if progressTTY && time.Since(p.lastPrint) >= progressRefresh {
+		p.print()
+		p.lastPrint = time.Now()
+	}
 }
 
 func (p *ProgressTracker) SetTotal(total int) {
@@ -97,22 +144,52 @@ func (p *ProgressTracker) SetTotal(total int) {
 	p.total = total
 }
 
+// AddTotal grows the expected total, used when recursive discovery queues more
+// work while the scan is already running.
+func (p *ProgressTracker) AddTotal(delta int) {
+	if p == nil || delta <= 0 {
+		return
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.total += delta
+}
+
 func (p *ProgressTracker) Finish() {
 	if p == nil {
 		return
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.print()
-	fmt.Fprintln(os.Stderr)
+	termMu.Lock()
+	defer termMu.Unlock()
+	clearProgressLine()
+	fmt.Fprintf(os.Stderr, "[*] %s\n", p.summary())
 }
 
+// print draws the in-place progress line. Callers hold p.mu; it is only
+// reached when progressTTY is true.
 func (p *ProgressTracker) print() {
+	termMu.Lock()
+	defer termMu.Unlock()
+	fmt.Fprintf(os.Stderr, "\r\033[K[*] %s", p.summary())
+}
+
+func (p *ProgressTracker) summary() string {
 	if p.total > 0 {
-		fmt.Fprintf(os.Stderr, "\r[*] %s: %d/%d words processed", p.label, p.current, p.total)
-		return
+		percent := p.current * 100 / p.total
+		return fmt.Sprintf("%s: %d/%d words processed (%d%%)", p.label, p.current, p.total, percent)
 	}
-	fmt.Fprintf(os.Stderr, "\r[*] %s: %d words processed", p.label, p.current)
+	return fmt.Sprintf("%s: %d words processed", p.label, p.current)
+}
+
+// writeResultLine prints a streamed result to stdout, first erasing any live
+// progress line on the terminal so the two never collide.
+func writeResultLine(line string) {
+	termMu.Lock()
+	defer termMu.Unlock()
+	clearProgressLine()
+	fmt.Fprintln(os.Stdout, line)
 }
 
 func PrintLiveResult(result Result) {
@@ -129,10 +206,10 @@ func PrintLiveResult(result Result) {
 		return
 	}
 	if result.Type == "dns" {
-		fmt.Fprintf(os.Stdout, "%-10s %-32s %s\n", result.Type, target, result.IP)
+		writeResultLine(fmt.Sprintf("%-10s %-32s %s", result.Type, target, result.IP))
 		return
 	}
-	fmt.Fprintf(os.Stdout, "%-10s %-7d %-8d %s\n", result.Type, result.Status, result.Size, target)
+	writeResultLine(fmt.Sprintf("%-10s %-7d %-8d %s", result.Type, result.Status, result.Size, target))
 	if Verbose {
 		details := []string{
 			"type=" + result.Type,

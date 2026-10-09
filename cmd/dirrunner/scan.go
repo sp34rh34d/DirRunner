@@ -13,7 +13,7 @@ import (
 
 func runDir(ctx context.Context, args []string) ([]output.Result, bool, string, error) {
 	fs := flag.NewFlagSet("dir", flag.ExitOnError)
-	common := addHTTPFlags(fs, "", 10, 15*time.Second)
+	common := addHTTPFlags(fs, "", 40, 15*time.Second)
 	target := ""
 	method := "GET"
 	dirWordlist := "wordlist/directory.txt"

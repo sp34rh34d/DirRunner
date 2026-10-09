@@ -10,7 +10,12 @@ import (
 	"dirrunner/internal/output"
 )
 
+// version is overridden at build time via -ldflags "-X main.version=...".
+var version = "1.3.0"
+
 func main() {
+	output.Version = version
+
 	if len(os.Args) < 2 {
 		usage()
 		os.Exit(2)
