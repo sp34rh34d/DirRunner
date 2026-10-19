@@ -306,7 +306,10 @@ func runRecursiveScan(ctx context.Context, client *http.Client, opts ScanOptions
 		}
 		if depth == 0 {
 			output.Info("dispatching requests at depth %d with %d workers as the wordlist is read", depth, workers)
-			total = 0
+			// Count the wordlist up front (cheap, no requests) so the progress bar
+			// has a real total and renders from the start; streaming still sends
+			// requests as the file is read, and SetTotal reaffirms the count later.
+			total = scanInitialTotal(opts)
 		} else {
 			output.Info("dispatching %d requests at depth %d with %d workers", total, depth, workers)
 		}
@@ -380,6 +383,43 @@ func runRecursiveScan(ctx context.Context, client *http.Client, opts ScanOptions
 	}
 	output.Info("scan summary: %s", stats.summary())
 	return found, nil
+}
+
+// scanInitialTotal counts the depth-0 request total by scanning the wordlist
+// line counts (one base URL at depth 0). Errors are ignored; a 0 result just
+// falls back to the countless progress line until streaming sets the total.
+func scanInitialTotal(opts ScanOptions) int {
+	total := 0
+	if opts.IncludeDirs {
+		if n, err := countWordlistLines(opts.DirectoryWordlist); err == nil {
+			total += n
+		}
+	}
+	if opts.IncludeFiles {
+		if n, err := countWordlistLines(opts.FileWordlist); err == nil {
+			total += n * len(opts.Extensions)
+		}
+	}
+	return total
+}
+
+func countWordlistLines(path string) (int, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+	n := 0
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 1024*64), 1024*1024)
+	for scanner.Scan() {
+		word := strings.TrimSpace(scanner.Text())
+		if word == "" || strings.HasPrefix(word, "#") {
+			continue
+		}
+		n++
+	}
+	return n, scanner.Err()
 }
 
 func streamInitialJobs(opts ScanOptions, bases []string, depth int, jobs chan<- scanJob, loads chan<- wordlistLoad, progress *output.ProgressTracker) {

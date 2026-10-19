@@ -16,7 +16,7 @@ var Verbose bool
 var StreamResults bool
 
 // Version is set from main at startup and shown in the banner.
-var Version = "1.3.0"
+var Version = "2.0.0"
 
 // termMu serializes writes to the terminal so the live progress line (stderr)
 // never interleaves with result lines (stdout) or log messages.
@@ -35,6 +35,80 @@ func isTerminal(f *os.File) bool {
 	return fi.Mode()&os.ModeCharDevice != 0
 }
 
+// ANSI color codes and whether color is allowed on each stream. Color is
+// disabled when the stream is not a terminal, or when NO_COLOR / TERM=dumb is
+// set, so piped output and files stay clean.
+const (
+	ansiReset   = "\033[0m"
+	ansiBold    = "\033[1m"
+	ansiRed     = "\033[31m"
+	ansiGreen   = "\033[32m"
+	ansiYellow  = "\033[33m"
+	ansiBlue    = "\033[34m"
+	ansiMagenta = "\033[35m"
+	ansiCyan    = "\033[36m"
+	ansiGray    = "\033[90m"
+	// Neon (bright) variants drive the cyberpunk theme.
+	ansiNeonPink   = "\033[95m"
+	ansiNeonCyan   = "\033[96m"
+	ansiNeonGreen  = "\033[92m"
+	ansiNeonYellow = "\033[93m"
+	ansiNeonRed    = "\033[91m"
+	ansiNeonBlue   = "\033[94m"
+)
+
+var (
+	colorStderr = colorAllowed(os.Stderr)
+	colorStdout = colorAllowed(os.Stdout)
+)
+
+func colorAllowed(f *os.File) bool {
+	if os.Getenv("NO_COLOR") != "" || os.Getenv("TERM") == "dumb" {
+		return false
+	}
+	return isTerminal(f)
+}
+
+// paint wraps s in an ANSI color when enabled; otherwise it returns s unchanged.
+func paint(enabled bool, code, s string) string {
+	if !enabled || code == "" {
+		return s
+	}
+	return code + s + ansiReset
+}
+
+// statusColor maps an HTTP status code to a neon color by class.
+func statusColor(code int) string {
+	switch {
+	case code >= 200 && code < 300:
+		return ansiNeonGreen
+	case code >= 300 && code < 400:
+		return ansiNeonCyan
+	case code >= 400 && code < 500:
+		return ansiNeonYellow
+	case code >= 500:
+		return ansiNeonRed
+	default:
+		return ansiGray
+	}
+}
+
+// typeColor gives each result type a stable neon accent color.
+func typeColor(t string) string {
+	switch t {
+	case "directory", "file", "url":
+		return ansiNeonBlue
+	case "dns", "technology", "fingerprint", "header":
+		return ansiNeonCyan
+	case "traversal", "sqli", "bypass", "dbms":
+		return ansiNeonPink
+	case "email", "match", "js", "img", "clone":
+		return ansiNeonGreen
+	default:
+		return ansiBold + ansiNeonCyan
+	}
+}
+
 // clearProgressLine erases the current in-place progress line so the next
 // message prints cleanly. No-op when stderr is not a terminal. Callers must
 // hold termMu.
@@ -44,11 +118,12 @@ func clearProgressLine() {
 	}
 }
 
-func emit(prefix, format string, args ...any) {
+func emit(prefixColor, prefix, msgColor, format string, args ...any) {
 	termMu.Lock()
 	defer termMu.Unlock()
 	clearProgressLine()
-	fmt.Fprintf(os.Stderr, prefix+format+"\n", args...)
+	msg := fmt.Sprintf(format, args...)
+	fmt.Fprintf(os.Stderr, "%s%s\n", paint(colorStderr, prefixColor, prefix), paint(colorStderr, msgColor, msg))
 }
 
 type Result struct {
@@ -66,42 +141,56 @@ type Result struct {
 }
 
 func Banner(w io.Writer) {
-	fmt.Fprintln(w, `   ___  _     ___`)
-	fmt.Fprintln(w, `  / _ \(_)___/ _ \__ _____  ___  ___ ____`)
-	fmt.Fprintln(w, ` / // / / __/ , _/ // / _ \/ _ \/ -_) __/`)
-	fmt.Fprintln(w, `/____/_/_/ /_/|_|\_,_/_//_/_//_/\__/_/`)
-	fmt.Fprintln(w, "By @spearh34d")
-	fmt.Fprintln(w, "DirRunner "+Version)
-	fmt.Fprintln(w, "DNS, recursive web-content, vhost, fuzz and fingerprint scanner")
-	fmt.Fprintln(w, strings.Repeat("-", 66))
+	const width = 66
+	top := "╔" + strings.Repeat("═", width-2) + "╗"
+	bottom := "╚" + strings.Repeat("═", width-2) + "╝"
+	art := []string{
+		"   ___  _     ___",
+		"  / _ \\(_)___/ _ \\__ _____  ___  ___ ____",
+		" / // / / __/ , _/ // / _ \\/ _ \\/ -_) __/",
+		"/____/_/_/ /_/|_|\\_,_/_//_/_//_/\\__/_/",
+	}
+	fmt.Fprintln(w, paint(colorStderr, ansiNeonPink, top))
+	for _, line := range art {
+		fmt.Fprintln(w, paint(colorStderr, ansiNeonPink+ansiBold, line))
+	}
+	fmt.Fprintln(w, paint(colorStderr, ansiNeonCyan+ansiBold, "  ░▒▓ D I R R U N N E R ▓▒░  ")+
+		paint(colorStderr, ansiNeonGreen, "v"+Version))
+	fmt.Fprintln(w, paint(colorStderr, ansiGray, "  sp34rh34d x @spearh34d"))
+	fmt.Fprintln(w, paint(colorStderr, ansiNeonPink, bottom))
 }
 
 func OptionsMenu(w io.Writer, title string, rows [][2]string) error {
 	Banner(w)
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(tw, "MODULE\t%s\n", title)
-	fmt.Fprintln(tw, "OPTION\tVALUE")
+	fmt.Fprintf(tw, "%s\t%s\n", paint(colorStderr, ansiNeonPink+ansiBold, "MODULE"), paint(colorStderr, ansiNeonCyan+ansiBold, title))
+	fmt.Fprintf(tw, "%s\t%s\n", paint(colorStderr, ansiGray, "OPTION"), paint(colorStderr, ansiGray, "VALUE"))
 	for _, row := range rows {
 		if row[1] == "" {
 			continue
 		}
-		fmt.Fprintf(tw, "%s\t%s\n", row[0], row[1])
+		fmt.Fprintf(tw, "%s\t%s\n", paint(colorStderr, ansiNeonCyan, row[0]), row[1])
 	}
 	fmt.Fprintln(tw, strings.Repeat("-", 66)+"\t")
 	return tw.Flush()
 }
 
 func Info(format string, args ...any) {
-	emit("[*] ", format, args...)
+	emit(ansiNeonCyan, "[◇] ", "", format, args...)
 }
 
 func Warn(format string, args ...any) {
-	emit("[!] ", format, args...)
+	emit(ansiNeonPink, "[▲] ", ansiNeonPink, format, args...)
+}
+
+// Success prints a positive, neon-green message.
+func Success(format string, args ...any) {
+	emit(ansiNeonGreen, "[✓] ", ansiNeonGreen, format, args...)
 }
 
 func Debug(format string, args ...any) {
 	if Verbose {
-		emit("[verbose] ", format, args...)
+		emit(ansiGray, "[»] ", ansiGray, format, args...)
 	}
 }
 
@@ -164,7 +253,7 @@ func (p *ProgressTracker) Finish() {
 	termMu.Lock()
 	defer termMu.Unlock()
 	clearProgressLine()
-	fmt.Fprintf(os.Stderr, "[*] %s\n", p.summary())
+	fmt.Fprintf(os.Stderr, "%s %s\n", paint(colorStderr, ansiNeonCyan, "[◇]"), p.summary())
 }
 
 // print draws the in-place progress line. Callers hold p.mu; it is only
@@ -172,15 +261,28 @@ func (p *ProgressTracker) Finish() {
 func (p *ProgressTracker) print() {
 	termMu.Lock()
 	defer termMu.Unlock()
-	fmt.Fprintf(os.Stderr, "\r\033[K[*] %s", p.summary())
+	fmt.Fprintf(os.Stderr, "\r\033[K%s %s", paint(colorStderr, ansiNeonCyan, "[◇]"), p.summary())
 }
+
+// progressBarWidth is the number of cells in the drawn progress bar.
+const progressBarWidth = 24
 
 func (p *ProgressTracker) summary() string {
 	if p.total > 0 {
 		percent := p.current * 100 / p.total
-		return fmt.Sprintf("%s: %d/%d words processed (%d%%)", p.label, p.current, p.total, percent)
+		filled := percent * progressBarWidth / 100
+		if filled > progressBarWidth {
+			filled = progressBarWidth
+		}
+		bar := paint(colorStderr, ansiNeonPink, strings.Repeat("█", filled)) +
+			paint(colorStderr, ansiGray, strings.Repeat("░", progressBarWidth-filled))
+		return fmt.Sprintf("%s ⟦%s⟧ %s %s",
+			paint(colorStderr, ansiNeonCyan, p.label),
+			bar,
+			paint(colorStderr, ansiNeonGreen, fmt.Sprintf("%3d%%", percent)),
+			paint(colorStderr, ansiGray, fmt.Sprintf("(%d/%d)", p.current, p.total)))
 	}
-	return fmt.Sprintf("%s: %d words processed", p.label, p.current)
+	return fmt.Sprintf("%s: %d processed", p.label, p.current)
 }
 
 // writeResultLine prints a streamed result to stdout, first erasing any live
@@ -206,10 +308,21 @@ func PrintLiveResult(result Result) {
 		return
 	}
 	if result.Type == "dns" {
-		writeResultLine(fmt.Sprintf("%-10s %-32s %s", result.Type, target, result.IP))
+		typeField := paint(colorStdout, typeColor(result.Type), fmt.Sprintf("%-10s", result.Type))
+		writeResultLine(fmt.Sprintf("%s %-32s %s", typeField, target, result.IP))
 		return
 	}
-	writeResultLine(fmt.Sprintf("%-10s %-7d %-8d %s", result.Type, result.Status, result.Size, target))
+	// Extraction findings (crawl --emails / --regx) carry no meaningful status or
+	// size; show the captured value and the page it was found on instead.
+	if result.Value != "" && (result.Type == "email" || result.Type == "match") {
+		typeField := paint(colorStdout, typeColor(result.Type), fmt.Sprintf("%-10s", result.Type))
+		valueField := paint(colorStdout, ansiNeonGreen, fmt.Sprintf("%-40s", result.Value))
+		writeResultLine(fmt.Sprintf("%s %s %s", typeField, valueField, target))
+		return
+	}
+	typeField := paint(colorStdout, typeColor(result.Type), fmt.Sprintf("%-10s", result.Type))
+	statusField := paint(colorStdout, statusColor(result.Status), fmt.Sprintf("%-7d", result.Status))
+	writeResultLine(fmt.Sprintf("%s %s %-8d %s", typeField, statusField, result.Size, target))
 	if Verbose {
 		details := []string{
 			"type=" + result.Type,

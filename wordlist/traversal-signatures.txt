@@ -1,0 +1,23 @@
+# Regex signatures confirming a leaked sensitive file (case-insensitive).
+# /etc/passwd, /etc/shadow
+root:.*?:0:0:
+daemon:.*?:/usr/sbin/nologin
+# Windows boot.ini / win.ini
+\[boot loader\]
+\[fonts\]
+\[extensions\]
+for 16-bit app support
+# Private keys
+-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----
+# MySQL / php config
+\[mysqld\]
+\[PHP\]
+; This is the main Apache
+# /etc/os-release, /proc/version
+PRETTY_NAME=
+Linux version 
+# Windows system.ini, hosts
+\[386Enh\]
+localhost name resolution
+# /etc/hosts (linux)
+127\.0\.0\.1\s+localhost

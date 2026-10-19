@@ -11,7 +11,7 @@ import (
 )
 
 // version is overridden at build time via -ldflags "-X main.version=...".
-var version = "1.3.0"
+var version = "2.0.0"
 
 func main() {
 	output.Version = version
@@ -40,6 +40,16 @@ func main() {
 		results, jsonOut, export, err = runFuzz(ctx, os.Args[2:])
 	case "fingerprint":
 		results, jsonOut, export, err = runFingerprint(ctx, os.Args[2:])
+	case "traversal":
+		results, jsonOut, export, err = runTraversal(ctx, os.Args[2:])
+	case "bypass":
+		results, jsonOut, export, err = runBypass(ctx, os.Args[2:])
+	case "sqli":
+		results, jsonOut, export, err = runSQLi(ctx, os.Args[2:])
+	case "crawl":
+		results, jsonOut, export, err = runCrawl(ctx, os.Args[2:])
+	case "clone":
+		results, jsonOut, export, err = runClone(ctx, os.Args[2:])
 	case "help", "-h", "--help":
 		usage()
 		return

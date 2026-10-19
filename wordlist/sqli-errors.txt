@@ -1,0 +1,43 @@
+SQL syntax.*MySQL
+Warning.*mysql_
+valid MySQL result
+MySqlClient\.
+PostgreSQL.*ERROR
+Warning.*pg_
+SQLite/JDBCDriver
+SQLite\.Exception
+System\.Data\.SqlClient\.SqlException
+Microsoft OLE DB Provider for SQL Server
+ODBC SQL Server Driver
+ORA-\d{5}
+Oracle error
+Unclosed quotation mark
+quoted string not properly terminated
+You have an error in your SQL syntax
+check the manual that corresponds to your (MySQL|MariaDB) server version
+supplied argument is not a valid MySQL
+com\.mysql\.jdbc
+MySQLSyntaxErrorException
+MariaDB server
+pg_query\(\)
+PSQLException
+org\.postgresql\.util\.PSQLException
+Npgsql\.
+syntax error at or near
+unterminated quoted string
+Warning.*mssql_
+SQLServerException
+System\.Data\.OleDb\.OleDbException
+Incorrect syntax near
+ORA-00933
+ORA-01756
+SQLite3::
+sqlite3\.OperationalError
+SQLITE_ERROR
+DB2 SQL error
+com\.ibm\.db2
+Sybase message
+Dynamic SQL Error
+Microsoft Access Driver
+JET Database Engine
+java\.sql\.SQLException

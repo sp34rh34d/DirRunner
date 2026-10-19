@@ -15,6 +15,7 @@ func runDir(ctx context.Context, args []string) ([]output.Result, bool, string, 
 	fs := flag.NewFlagSet("dir", flag.ExitOnError)
 	common := addHTTPFlags(fs, "", 40, 15*time.Second)
 	target := ""
+	urlFile := ""
 	method := "GET"
 	dirWordlist := "wordlist/directory.txt"
 	fileWordlist := "wordlist/filename.txt"
@@ -26,6 +27,7 @@ func runDir(ctx context.Context, args []string) ([]output.Result, bool, string, 
 	skipWildcard := false
 	fs.StringVar(&target, "url", "", "target base URL")
 	fs.StringVar(&target, "u", "", "target base URL")
+	fs.StringVar(&urlFile, "url-file", "", "file with target URLs, one per line")
 	fs.StringVar(&method, "method", "GET", "HTTP method")
 	fs.StringVar(&method, "X", "GET", "HTTP method")
 	fs.StringVar(&dirWordlist, "dir-wordlist", "wordlist/directory.txt", "directory wordlist path")
@@ -58,8 +60,7 @@ func runDir(ctx context.Context, args []string) ([]output.Result, bool, string, 
 	}})
 	fs.Parse(args)
 	output.StreamResults = !*common.jsonOut
-	var err error
-	target, err = targetFromArgs(target, fs.Args())
+	targets, err := targetsFromArgs(target, urlFile, fs.Args())
 	if err != nil {
 		return nil, *common.jsonOut, *common.export, err
 	}
@@ -71,7 +72,7 @@ func runDir(ctx context.Context, args []string) ([]output.Result, bool, string, 
 	includeFiles := len(extensions) > 0
 
 	rows := append(httpOptionRows(common), [][2]string{
-		{"Target URL", target},
+		{"Target URL", targetsDisplay(targets)},
 		{"Method", method},
 		{"Status codes", codesRaw},
 		{"Directories", "enabled"},
@@ -91,21 +92,23 @@ func runDir(ctx context.Context, args []string) ([]output.Result, bool, string, 
 	}
 	httpOpts := common.options()
 	httpOpts.Method = method
-	results, err := runner.RunScan(ctx, runner.ScanOptions{
-		Target:            target,
-		DirectoryWordlist: dirWordlist,
-		FileWordlist:      fileWordlist,
-		Workers:           *common.workers,
-		Codes:             codes,
-		Extensions:        extensions,
-		HTTP:              httpOpts,
-		Recursive:         recursive,
-		MaxDepth:          depth,
-		IncludeDirs:       true,
-		IncludeFiles:      includeFiles,
-		SkipWildcardCheck: !wildcardCheck || skipWildcard,
+	results := runTargets(ctx, targets, func(t string) ([]output.Result, error) {
+		return runner.RunScan(ctx, runner.ScanOptions{
+			Target:            t,
+			DirectoryWordlist: dirWordlist,
+			FileWordlist:      fileWordlist,
+			Workers:           *common.workers,
+			Codes:             codes,
+			Extensions:        extensions,
+			HTTP:              httpOpts,
+			Recursive:         recursive,
+			MaxDepth:          depth,
+			IncludeDirs:       true,
+			IncludeFiles:      includeFiles,
+			SkipWildcardCheck: !wildcardCheck || skipWildcard,
+		})
 	})
-	return results, *common.jsonOut, *common.export, err
+	return results, *common.jsonOut, *common.export, nil
 }
 
 func extensionDisplay(ext []string) string {

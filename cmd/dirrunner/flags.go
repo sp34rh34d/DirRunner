@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -41,8 +42,7 @@ type httpFlags struct {
 	headers           *arrayFlag
 	excludeSizes      *string
 	excludeSizeRanges *string
-	tor               *bool
-	torProxy          *string
+	proxy             *string
 }
 
 func addCommonFlags(fs *flag.FlagSet, defaultWordlist string, defaultWorkers int) commonFlags {
@@ -80,8 +80,7 @@ func addHTTPFlags(fs *flag.FlagSet, defaultWordlist string, defaultWorkers int, 
 	follow := false
 	excludeSizes := ""
 	excludeSizeRanges := ""
-	tor := false
-	torProxy := "127.0.0.1:9050"
+	proxy := ""
 	fs.StringVar(&wordlist, "wordlist", defaultWordlist, "wordlist path")
 	fs.StringVar(&wordlist, "w", defaultWordlist, "wordlist path")
 	fs.IntVar(&workers, "threads", defaultWorkers, "concurrent workers")
@@ -114,10 +113,8 @@ func addHTTPFlags(fs *flag.FlagSet, defaultWordlist string, defaultWorkers int, 
 	fs.StringVar(&excludeSizes, "S", "", "comma separated response sizes to exclude")
 	fs.StringVar(&excludeSizeRanges, "exclude-size-range", "", "comma separated inclusive ranges to exclude, for example 100-200,1000-1200")
 	fs.StringVar(&excludeSizeRanges, "R", "", "comma separated inclusive ranges to exclude")
-	fs.BoolVar(&tor, "tor", false, "route HTTP requests through Tor SOCKS5")
-	fs.BoolVar(&tor, "Q", false, "route HTTP requests through Tor SOCKS5")
-	fs.StringVar(&torProxy, "tor-proxy", "127.0.0.1:9050", "Tor SOCKS5 proxy address")
-	fs.StringVar(&torProxy, "q", "127.0.0.1:9050", "Tor SOCKS5 proxy address")
+	fs.StringVar(&proxy, "proxy", "", "proxy URL: http://, https://, socks5:// or socks5h:// (Tor: socks5h://127.0.0.1:9050)")
+	fs.StringVar(&proxy, "x", "", "proxy URL (alias for --proxy)")
 	var headers arrayFlag
 	fs.Var(&headers, "header", "custom header, repeatable: Name: value")
 	fs.Var(&headers, "H", "custom header, repeatable: Name: value")
@@ -134,9 +131,35 @@ func addHTTPFlags(fs *flag.FlagSet, defaultWordlist string, defaultWorkers int, 
 		headers:           &headers,
 		excludeSizes:      &excludeSizes,
 		excludeSizeRanges: &excludeSizeRanges,
-		tor:               &tor,
-		torProxy:          &torProxy,
+		proxy:             &proxy,
 	}
+}
+
+// runTargets runs the given per-target function over every target, streaming
+// each one's results live and aggregating them. A failure on one target is
+// reported and skipped so the rest of the list still runs.
+func runTargets(ctx context.Context, targets []string, run func(string) ([]output.Result, error)) []output.Result {
+	var all []output.Result
+	for _, target := range targets {
+		if ctx.Err() != nil {
+			break
+		}
+		results, err := run(target)
+		if err != nil {
+			output.Warn("failed for %s: %v", target, err)
+			continue
+		}
+		all = append(all, results...)
+	}
+	return all
+}
+
+// targetsDisplay renders the target count for the options menu.
+func targetsDisplay(targets []string) string {
+	if len(targets) == 1 {
+		return targets[0]
+	}
+	return fmt.Sprintf("%d URLs", len(targets))
 }
 
 func showOptions(title string, common commonFlags, rows [][2]string) {
@@ -164,8 +187,7 @@ func httpOptionRows(h httpFlags) [][2]string {
 		{"Custom headers", fmt.Sprint(len(*h.headers))},
 		{"Exclude sizes", displayOrDisabled(*h.excludeSizes)},
 		{"Exclude size ranges", displayOrDisabled(*h.excludeSizeRanges)},
-		{"Tor", activeValue(*h.tor)},
-		{"Tor proxy", torProxyDisplay(*h.tor, *h.torProxy)},
+		{"Proxy", displayOrDisabled(*h.proxy)},
 	}
 }
 
@@ -196,16 +218,8 @@ func (h httpFlags) options() runner.HTTPOptions {
 		Headers:         parseHeaders(*h.headers),
 		ExcludeSizes:    parseExcludeSizes(*h.excludeSizes),
 		ExcludeRanges:   parseExcludeSizeRanges(*h.excludeSizeRanges),
-		Tor:             *h.tor,
-		TorProxy:        *h.torProxy,
+		Proxy:           *h.proxy,
 	}
-}
-
-func torProxyDisplay(enabled bool, value string) string {
-	if !enabled {
-		return "disabled"
-	}
-	return value
 }
 
 func displayOrDisabled(value string) string {

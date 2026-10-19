@@ -13,9 +13,11 @@ func runVHost(ctx context.Context, args []string) ([]output.Result, bool, string
 	fs := flag.NewFlagSet("vhost", flag.ExitOnError)
 	common := addHTTPFlags(fs, "wordlist/subdomains.txt", 40, 2*time.Second)
 	targetURL := ""
+	urlFile := ""
 	domain := ""
 	fs.StringVar(&targetURL, "url", "", "target URL or IP")
 	fs.StringVar(&targetURL, "u", "", "target URL or IP")
+	fs.StringVar(&urlFile, "url-file", "", "file with target URLs, one per line")
 	fs.StringVar(&domain, "domain", "", "domain used to build Host headers")
 	fs.StringVar(&domain, "d", "", "domain used to build Host headers")
 	setModuleUsage(fs, "vhost", "Virtual host enumeration through the Host header.", []string{
@@ -26,20 +28,21 @@ func runVHost(ctx context.Context, args []string) ([]output.Result, bool, string
 	}})
 	fs.Parse(args)
 	output.StreamResults = !*common.jsonOut
-	var err error
-	targetURL, err = targetFromArgs(targetURL, fs.Args())
+	targets, err := targetsFromArgs(targetURL, urlFile, fs.Args())
 	if err != nil {
 		return nil, *common.jsonOut, *common.export, err
 	}
 	rows := append(httpOptionRows(common), [][2]string{
-		{"Target URL", targetURL},
+		{"Target URL", targetsDisplay(targets)},
 		{"Target domain", domain},
 		{"Wordlist", *common.wordlist},
 	}...)
 	showOptions("Virtual Host Enumeration", common.commonFlags, rows)
-	results, err := runner.RunVHost(ctx, runner.VHostOptions{
-		TargetURL: targetURL, Domain: domain, Wordlist: *common.wordlist,
-		Workers: *common.workers, HTTP: common.options(),
+	results := runTargets(ctx, targets, func(t string) ([]output.Result, error) {
+		return runner.RunVHost(ctx, runner.VHostOptions{
+			TargetURL: t, Domain: domain, Wordlist: *common.wordlist,
+			Workers: *common.workers, HTTP: common.options(),
+		})
 	})
-	return results, *common.jsonOut, *common.export, err
+	return results, *common.jsonOut, *common.export, nil
 }

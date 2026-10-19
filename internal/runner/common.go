@@ -4,17 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/tls"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	mrand "math/rand"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,7 +18,7 @@ import (
 	"dirrunner/internal/output"
 )
 
-const UserAgent = "DirRunner v1.3.0"
+const UserAgent = "DirRunner v2.0.0"
 
 // randomUserAgents is a small pool of common, real-world User-Agent strings
 // rotated per request when the --random-agent flag is set, to avoid trivial
@@ -56,8 +52,7 @@ type HTTPOptions struct {
 	Headers         map[string]string
 	ExcludeSizes    map[int64]struct{}
 	ExcludeRanges   []SizeRange
-	Tor             bool
-	TorProxy        string
+	Proxy           string // http://, https://, socks5:// or socks5h:// proxy URL
 }
 
 type SizeRange struct {
@@ -67,18 +62,31 @@ type SizeRange struct {
 
 func NewHTTPClient(opts HTTPOptions) *http.Client {
 	transport := &http.Transport{
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: !opts.TLSVerify},
-		MaxIdleConns:        256,
-		MaxIdleConnsPerHost: 256,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: !opts.TLSVerify,
+			// Cache TLS sessions so the handshakes we cannot avoid (large bodies
+			// that drop keep-alive, new hosts) resume instead of doing a full
+			// handshake each time.
+			ClientSessionCache: tls.NewLRUClientSessionCache(512),
+		},
+		// HTTP/2 is intentionally left off (setting TLSClientConfig disables Go's
+		// automatic h2 upgrade, and we do not force it): forcing h2 breaks against
+		// some servers and proxies with "received GOAWAY before SETTINGS" errors.
+		// HTTP/1.1 keep-alive plus the TLS session cache already reuse connections.
+		MaxIdleConns:        512,
+		MaxIdleConnsPerHost: 512,
 		IdleConnTimeout:     30 * time.Second,
 	}
-	if opts.Tor {
-		proxyAddr := opts.TorProxy
-		if proxyAddr == "" {
-			proxyAddr = "127.0.0.1:9050"
+	if opts.Proxy != "" {
+		// Go's transport handles http, https, socks5 and socks5h proxy URLs
+		// natively, so a single --proxy covers plain HTTP proxies (Burp, ZAP)
+		// and SOCKS5 (Tor: socks5h://127.0.0.1:9050).
+		if proxyURL, err := url.Parse(opts.Proxy); err == nil && proxyURL.Host != "" {
+			transport.Proxy = http.ProxyURL(proxyURL)
+			output.Debug("using proxy %s", opts.Proxy)
+		} else {
+			output.Warn("invalid --proxy %q, ignoring", opts.Proxy)
 		}
-		transport.DialContext = socks5DialContext(proxyAddr)
-		output.Debug("using Tor SOCKS5 proxy %s", proxyAddr)
 	}
 	client := &http.Client{
 		Timeout:   opts.Timeout,
@@ -90,102 +98,6 @@ func NewHTTPClient(opts HTTPOptions) *http.Client {
 		}
 	}
 	return client
-}
-
-func socks5DialContext(proxyAddr string) func(context.Context, string, string) (net.Conn, error) {
-	return func(ctx context.Context, network, address string) (net.Conn, error) {
-		var dialer net.Dialer
-		conn, err := dialer.DialContext(ctx, network, proxyAddr)
-		if err != nil {
-			return nil, err
-		}
-		if err := socks5Connect(ctx, conn, address); err != nil {
-			conn.Close()
-			return nil, err
-		}
-		return conn, nil
-	}
-}
-
-func socks5Connect(ctx context.Context, conn net.Conn, address string) error {
-	if deadline, ok := ctx.Deadline(); ok {
-		_ = conn.SetDeadline(deadline)
-		defer conn.SetDeadline(time.Time{})
-	}
-	if _, err := conn.Write([]byte{0x05, 0x01, 0x00}); err != nil {
-		return err
-	}
-	reply := make([]byte, 2)
-	if _, err := io.ReadFull(conn, reply); err != nil {
-		return err
-	}
-	if reply[0] != 0x05 || reply[1] != 0x00 {
-		return fmt.Errorf("socks5 proxy does not allow no-auth connection")
-	}
-
-	host, portRaw, err := net.SplitHostPort(address)
-	if err != nil {
-		return err
-	}
-	port, err := strconv.Atoi(portRaw)
-	if err != nil || port < 1 || port > 65535 {
-		return fmt.Errorf("invalid target port %q", portRaw)
-	}
-
-	req := []byte{0x05, 0x01, 0x00}
-	if ip := net.ParseIP(host); ip != nil {
-		if ipv4 := ip.To4(); ipv4 != nil {
-			req = append(req, 0x01)
-			req = append(req, ipv4...)
-		} else {
-			req = append(req, 0x04)
-			req = append(req, ip.To16()...)
-		}
-	} else {
-		if len(host) > 255 {
-			return fmt.Errorf("target host too long for socks5: %s", host)
-		}
-		req = append(req, 0x03, byte(len(host)))
-		req = append(req, []byte(host)...)
-	}
-	portBytes := make([]byte, 2)
-	binary.BigEndian.PutUint16(portBytes, uint16(port))
-	req = append(req, portBytes...)
-	if _, err := conn.Write(req); err != nil {
-		return err
-	}
-
-	header := make([]byte, 4)
-	if _, err := io.ReadFull(conn, header); err != nil {
-		return err
-	}
-	if header[0] != 0x05 || header[1] != 0x00 {
-		return fmt.Errorf("socks5 connect failed with code 0x%02x", header[1])
-	}
-	var discard int
-	switch header[3] {
-	case 0x01:
-		discard = 4
-	case 0x03:
-		lenByte := make([]byte, 1)
-		if _, err := io.ReadFull(conn, lenByte); err != nil {
-			return err
-		}
-		discard = int(lenByte[0])
-	case 0x04:
-		discard = 16
-	default:
-		return fmt.Errorf("invalid socks5 address type 0x%02x", header[3])
-	}
-	if discard > 0 {
-		if _, err := io.CopyN(io.Discard, conn, int64(discard)); err != nil {
-			return err
-		}
-	}
-	if _, err := io.CopyN(io.Discard, conn, 2); err != nil {
-		return err
-	}
-	return nil
 }
 
 func NewRequest(ctx context.Context, method, rawURL string, body io.Reader, opts HTTPOptions) (*http.Request, error) {
@@ -310,6 +222,25 @@ func LoadWordlist(path string) ([]string, error) {
 	words := parseWordlist(string(data))
 	output.Debug("loaded %d words from %s in %s", len(words), path, time.Since(start).Round(time.Millisecond))
 	return words, nil
+}
+
+// loadRawLines reads a wordlist preserving each payload's leading/trailing
+// spaces (LoadWordlist trims them, which would corrupt payloads like " AND 1=1").
+// It still skips blank lines and # comments.
+func loadRawLines(path string) ([]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimRight(line, "\r")
+		if trimmed := strings.TrimSpace(line); trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		out = append(out, line)
+	}
+	return out, nil
 }
 
 func parseWordlist(raw string) []string {

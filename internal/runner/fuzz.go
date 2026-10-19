@@ -3,11 +3,9 @@ package runner
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -22,16 +20,12 @@ type FuzzOptions struct {
 	Codes     []int
 	BodyJSON  string
 	BodyForm  string
+	CSRFField string   // body field holding an anti-CSRF token to refresh before each request
+	CSRFURL   string   // page to GET the token/cookie from (default: the target URL)
+	Encodings []string // chained in order: base64, urlencode, xor (same engine as traversal/sqli)
+	XorKey    string   // key for the xor encoding step
 	HTTP      HTTPOptions
-	Encoders  []FuzzEncoder
 }
-
-type FuzzEncoder string
-
-const (
-	FuzzEncoderBase64    FuzzEncoder = "base64"
-	FuzzEncoderURLEncode FuzzEncoder = "urlencode"
-)
 
 func RunFuzz(ctx context.Context, opts FuzzOptions) ([]output.Result, error) {
 	if !validate.URL(strings.ReplaceAll(opts.TargetURL, "FUZZ", "test")) {
@@ -74,15 +68,34 @@ func RunFuzz(ctx context.Context, opts FuzzOptions) ([]output.Result, error) {
 		}
 
 		rawURL := strings.ReplaceAll(opts.TargetURL, "FUZZ", encodedWord)
-		var body io.Reader
+		bodyStr := ""
 		contentType := ""
+		isJSON := false
 		if opts.BodyJSON != "" {
-			body = bytes.NewBufferString(strings.ReplaceAll(opts.BodyJSON, "FUZZ", encodedWord))
+			bodyStr = strings.ReplaceAll(opts.BodyJSON, "FUZZ", encodedWord)
 			contentType = "application/json"
+			isJSON = true
 		}
 		if opts.BodyForm != "" {
-			body = bytes.NewBufferString(strings.ReplaceAll(opts.BodyForm, "FUZZ", encodedWord))
+			bodyStr = strings.ReplaceAll(opts.BodyForm, "FUZZ", encodedWord)
 			contentType = "application/x-www-form-urlencoded"
+		}
+		// Refresh the anti-CSRF token (and session cookie) before the request.
+		if opts.CSRFField != "" && bodyStr != "" {
+			pageURL := opts.CSRFURL
+			if pageURL == "" {
+				pageURL = strings.ReplaceAll(opts.TargetURL, "FUZZ", "test")
+			}
+			if token, cookie, err := fetchCSRF(ctx, client, httpOpts, pageURL, opts.CSRFField); err == nil && token != "" {
+				bodyStr = setBodyField(bodyStr, opts.CSRFField, token, isJSON)
+				if cookie != "" {
+					httpOpts.Headers["Cookie"] = cookie
+				}
+			}
+		}
+		var body io.Reader
+		if bodyStr != "" {
+			body = bytes.NewBufferString(bodyStr)
 		}
 		result, ok := executeFuzzRequest(ctx, client, httpOpts, rawURL, body, contentType, codes)
 		if !ok {
@@ -96,17 +109,14 @@ func RunFuzz(ctx context.Context, opts FuzzOptions) ([]output.Result, error) {
 	})
 }
 
+// encodeFuzzValue chain-encodes the FUZZ value through the configured encodings,
+// using the same pipeline as the traversal and sqli modules: --encode lists the
+// steps in order (base64, urlencode, xor) and only the final result is sent.
 func (opts FuzzOptions) encodeFuzzValue(value string) string {
-	encoded := value
-	for _, encoder := range opts.Encoders {
-		switch encoder {
-		case FuzzEncoderBase64:
-			encoded = base64.StdEncoding.EncodeToString([]byte(encoded))
-		case FuzzEncoderURLEncode:
-			encoded = url.QueryEscape(encoded)
-		}
+	if len(opts.Encodings) == 0 {
+		return value
 	}
-	return encoded
+	return chainEncode(value, opts.Encodings, opts.XorKey)
 }
 
 func (opts FuzzOptions) containsFuzz() bool {
