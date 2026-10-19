@@ -270,6 +270,12 @@ const progressBarWidth = 24
 func (p *ProgressTracker) summary() string {
 	if p.total > 0 {
 		percent := p.current * 100 / p.total
+		// Clamp to 100%: a total that momentarily lags behind processed count
+		// (e.g. a huge wordlist still streaming, or recursive discovery) must
+		// never render as "239%".
+		if percent > 100 {
+			percent = 100
+		}
 		filled := percent * progressBarWidth / 100
 		if filled > progressBarWidth {
 			filled = progressBarWidth
