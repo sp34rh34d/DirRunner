@@ -459,11 +459,17 @@ func streamInitialJobs(opts ScanOptions, bases []string, depth int, jobs chan<- 
 		close(totalCh)
 	}()
 
+	// Accumulate every producer's request count and set the total only once all
+	// have reported. Setting it per-message would drop the up-front estimate to a
+	// partial sum: a small wordlist (e.g. filenames) finishes first and would
+	// shrink the total below the jobs a huge wordlist (e.g. directories) is still
+	// streaming, pushing the bar past 100%. The up-front scanInitialTotal estimate
+	// holds meanwhile.
 	knownTotal := 0
 	for total := range totalCh {
 		knownTotal += total
-		progress.SetTotal(knownTotal)
 	}
+	progress.SetTotal(knownTotal)
 }
 
 func enqueueKnownJobs(opts ScanOptions, bases []string, depth int, dirWords, fileWords []string, jobs chan<- scanJob) {
